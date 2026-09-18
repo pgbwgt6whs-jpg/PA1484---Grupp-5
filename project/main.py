@@ -71,6 +71,7 @@ class Application:
         log("Wi-Fi connected" if station.isconnected()
             else "Wi-Fi could not connect (timeout)")
 
+
 try:
     app = Application()
 except Exception as error:
