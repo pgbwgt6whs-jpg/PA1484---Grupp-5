@@ -42,7 +42,13 @@ class Application:
         self.tile2 = self.tileview.add_tile(1, 0, lv.DIR.LEFT)
 
         self.tile1_label = lv.label(self.tile1)
-        self.tile1_label.set_text("Hello students")
+        Intro_text = (
+            "Public Transportation Information\n"
+            "Version 1.0\n"
+            "Grupp 5\n"
+            "Members: Mette, Emily, Sedra, Elsa and Ayat"
+        )
+        self.tile1_label.set_text(Intro_text)
         self.tile1_label.set_style_text_font(lv.font_montserrat_28, 0)
         self.tile1_label.center()
         self.apply_tile_colors(self.tile1, self.tile1_label, False)
