@@ -14,6 +14,8 @@ class Application:
     def __init__(self):
         self.display, self.touch, self.handler = start_board()
         self.tile2_dark = False
+        self.transport_type = "All" # Stores the currently selected transportation type, where "All" is used as the default value.
+
         self.create_ui()
         self.connect_wifi()
         log("student application ready")
@@ -38,8 +40,10 @@ class Application:
         self.tileview.set_size(600, 450)
         self.tileview.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
 
-        self.tile1 = self.tileview.add_tile(0, 0, lv.DIR.RIGHT)
-        self.tile2 = self.tileview.add_tile(1, 0, lv.DIR.LEFT)
+        # Creates the three main screens as tiles
+        self.tile1 = self.tileview.add_tile(0, 0, lv.DIR.RIGHT) # Tile 1 can be swiped to the right.
+        self.tile2 = self.tileview.add_tile(1, 0, lv.DIR.LEFT | lv.DIR.RIGHT) # Tile 2 is located between tile 1 och tile 3, so navigation is allowed in both directions.
+        self.tile3 = self.tileview.add_tile(2, 0, lv.DIR.LEFT) # Tile 3 is the settings screen, so it can be swiped back to tile 2.
 
         self.tile1_label = lv.label(self.tile1)
         Intro_text = (
@@ -59,9 +63,43 @@ class Application:
         self.tile2_label.center()
         self.apply_tile_colors(self.tile2, self.tile2_label, False)
         self.tile2.add_flag(lv.obj.FLAG.CLICKABLE)
-        self.tile2.add_event_cb(
-            self.on_tile2_clicked, lv.EVENT.CLICKED, None
-        )
+        self.tile2.add_event_cb(self.on_tile2_clicked, lv.EVENT.CLICKED, None)
+
+        # -----------------------------------------------
+        # Settings Screen - FR6
+        # -----------------------------------------------
+        # Creates the title for the settings screen. 
+        self.settings_title = lv.label(self.tile3)
+        self.settings_title.set_text("Settings")
+        self.settings_title.set_style_text_font(lv.font_montserrat_28, 0) # Sets the front size of the settings title.
+        self.settings_title.align(lv.ALIGN.TOP_MID, 0, 30) # Positions the title at the top center of the screen.
+
+        # Creates a label for the traffic data display settings (settings related to how traffic data is displayed can be placed below).
+        self.traffic_settings_label = lv.label(self.tile3)
+        self.traffic_settings_label.set_text("Traffic data display")
+        self.traffic_settings_label.align(lv.ALIGN.TOP_LEFT, 50, 100) # Positions the section label below the Settings title.
+
+        # Transportation type selection - FR8
+        # Creates a label describing the transportation type dropdown.
+        self.transport_label = lv.label(self.tile3)
+        self.transport_label.set_text("Transport type")
+        self.transport_label.align(lv.ALIGN.TOP_LEFT, 50, 150) # Positions the label on the settings screen.
+
+        # Dropdown menu implementation
+        self.transport_dropdown = lv.dropdown(self.tile3) # Creates a dropdown menu on the settings screen.
+        self.transport_dropdown.set_options("Bus\nTrain\nFerry\nAll") # Adds the four transportation types required by FR8.
+        self.transport_dropdown.set_selected(3) # Selects "All" as the default option (dropdown indexes start at 0).
+        self.transport_dropdown.set_width(200) # Sets the width of the dropdown menu.
+        self.transport_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 140) # Positions the dropdown next to the "Transport type" label.
+        self.transport_dropdown.add_event_cb(self.on_transport_changed,lv.EVENT.VALUE_CHANGED, None) # Calls on_transport_changed() whenever the user selects a different transportation type.
+
+    def on_transport_changed(self, event):
+        """Updates the selected transportation type."""
+
+        dropdown = event.get_target() # Gets the dropdown object that triggered the event.
+        self.transport_type = dropdown.get_selected_str() # Gets the selected option as text and stores it in the transport_type variable.
+        log("Selected transport type: "+ self.transport_type) # Prints the selected transportation type to the log (useful for dropdown testing).
+
 
     @staticmethod
     def connect_wifi():
