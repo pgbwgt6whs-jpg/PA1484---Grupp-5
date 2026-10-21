@@ -15,6 +15,7 @@ class Application:
         self.display, self.touch, self.handler = start_board()
         self.tile2_dark = False
         self.transport_type = "All" # Stores the currently selected transportation type, where "All" is used as the default value.
+        self.selected_stop = "Karlskrona Centralstation"  # Stores the currently selected stop, with Karlskrona Centralstation as the default value.
 
         self.create_ui()
         self.connect_wifi()
@@ -79,6 +80,35 @@ class Application:
         self.traffic_settings_label.set_text("Traffic data display")
         self.traffic_settings_label.align(lv.ALIGN.TOP_LEFT, 50, 100) # Positions the section label below the Settings title.
 
+
+        # -----------------------------------------------
+        # Stop selection - FR7
+        # -----------------------------------------------
+
+        # Creates a label for the stop selection.
+        self.stop_label = lv.label(self.tile3)
+        self.stop_label.set_text("Select stop")
+        self.stop_label.align(lv.ALIGN.TOP_LEFT, 50, 220)  # Positions the stop selection label on the settings screen.
+
+        # Creates a dropdown menu for selecting a stop.
+        self.stop_dropdown = lv.dropdown(self.tile3)    
+        self.stop_dropdown.set_options(
+             "Karlskrona Centralstation\n"
+             "Campus Gräsvik"
+        )  # Adds the available stops to the dropdown menu.    
+
+        self.stop_dropdown.set_selected(0)  # Selects "Karlskrona Centralstation" as the default stop (dropdown indexes start at 0).  
+        self.stop_dropdown.set_width(250)  # Sets the width of the stop dropdown menu.
+        self.stop_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 210)  # Positions the stop dropdown next to the "Select stop" label.
+
+        self.stop_dropdown.add_event_cb(
+            self.on_stop_changed,
+            lv.EVENT.VALUE_CHANGED,
+            None
+        )  # Calls on_stop_changed() when the user selects a different stop.
+
+
+
         # Transportation type selection - FR8
         # Creates a label describing the transportation type dropdown.
         self.transport_label = lv.label(self.tile3)
@@ -93,9 +123,14 @@ class Application:
         self.transport_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 140) # Positions the dropdown next to the "Transport type" label.
         self.transport_dropdown.add_event_cb(self.on_transport_changed,lv.EVENT.VALUE_CHANGED, None) # Calls on_transport_changed() whenever the user selects a different transportation type.
 
-    def on_transport_changed(self, event):
-        """Updates the selected transportation type."""
+    def on_stop_changed(self, event):
+        """Updates the selected stop."""
+        dropdown = event.get_target() # Gets the dropdown object that triggered the event.
+        self.selected_stop = dropdown.get_selected_str() # Gets and stores the selected stop.
+        log("Selected stop: " + self.selected_stop) # Prints the selected stop to the log for testing
 
+
+    def on_transport_changed(self, event):
         dropdown = event.get_target() # Gets the dropdown object that triggered the event.
         self.transport_type = dropdown.get_selected_str() # Gets the selected option as text and stores it in the transport_type variable.
         log("Selected transport type: "+ self.transport_type) # Prints the selected transportation type to the log (useful for dropdown testing).
