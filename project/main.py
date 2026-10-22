@@ -46,7 +46,7 @@ class Application:
             "Public Transportation Information\n"
             "Version 1.0\n"
             "Grupp 5\n"
-            "Members: Mette, Emily, Sedra, Elsa and Ayat"
+            "Members: Mette, Emily, \nSedra, Elsa and Ayat"
         )
         self.tile1_label.set_text(Intro_text)
         self.tile1_label.set_style_text_font(lv.font_montserrat_28, 0)
