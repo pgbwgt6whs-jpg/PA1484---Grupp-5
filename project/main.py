@@ -1,13 +1,22 @@
 import sys
 import time
-
+import json      #For handeling API data 
+import urequests #For API requests
 import lvgl as lv
 import network
 
 from board_lvgl import start_board
 from debug_log import log
+from secrets import WIFI_SSID, WIFI_PASSWORD, TRAFIKLAB_API_KEY
 
-from secrets import WIFI_SSID, WIFI_PASSWORD
+API_BASE = "https://realtime-api.trafiklab.se/v1"
+# These are name-search paths, not stop IDs. The stop IDs come from Stop Lookup.
+# Stop IDs from Trafiklab Stop Lookup
+STOP_IDS = {
+    "Karlskrona Centralstation": "740000230",
+    "Campus Gräsvik": "740032188"
+}
+TRANSPORT_MODES = {"Bus": "BUS", "Train": "TRAIN", "Ferry": "BOAT", "All": None}
 
 
 class Application:
@@ -16,9 +25,9 @@ class Application:
         self.tile2_dark = False
         self.transport_type = "All" # Stores the currently selected transportation type, where "All" is used as the default value.
         self.selected_stop = "Karlskrona Centralstation"  # Stores the currently selected stop, with Karlskrona Centralstation as the default value.
-
         self.create_ui()
         self.connect_wifi()
+        self.update_departure_screen() 
         log("student application ready")
 
     @staticmethod
@@ -34,6 +43,10 @@ class Application:
     def on_tile2_clicked(self, _event):
         self.tile2_dark = not self.tile2_dark
         self.apply_tile_colors(self.tile2, self.tile2_label, self.tile2_dark)
+        self.departure_label.set_style_text_color(
+            lv.color_hex(0xFFFFFF if self.tile2_dark else 0x000000),
+            0
+        )
 
     def create_ui(self):
         'Function: Creates UI'
@@ -46,12 +59,16 @@ class Application:
         self.tile2 = self.tileview.add_tile(1, 0, lv.DIR.LEFT | lv.DIR.RIGHT) # Tile 2 is located between tile 1 och tile 3, so navigation is allowed in both directions.
         self.tile3 = self.tileview.add_tile(2, 0, lv.DIR.LEFT) # Tile 3 is the settings screen, so it can be swiped back to tile 2.
 
+        #-----------------------------------------------
+        #Intro Screen -FR1
+        #-----------------------------------------------
         self.tile1_label = lv.label(self.tile1)
         Intro_text = (
             "Public Transportation Information\n"
             "Version 1.0\n"
             "Grupp 5\n"
             "Members: Mette, Emily, \nSedra, Elsa and Ayat"
+            "All data is provided by TrafikLab"
         )
         self.tile1_label.set_text(Intro_text)
         self.tile1_label.set_style_text_font(lv.font_montserrat_28, 0)
@@ -59,12 +76,18 @@ class Application:
         self.apply_tile_colors(self.tile1, self.tile1_label, False)
 
         self.tile2_label = lv.label(self.tile2)
-        self.tile2_label.set_text("Welcome to the workshop")
+        self.tile2_label.set_text("Departures")
         self.tile2_label.set_style_text_font(lv.font_montserrat_28, 0)
         self.tile2_label.center()
         self.apply_tile_colors(self.tile2, self.tile2_label, False)
         self.tile2.add_flag(lv.obj.FLAG.CLICKABLE)
         self.tile2.add_event_cb(self.on_tile2_clicked, lv.EVENT.CLICKED, None)
+
+        self.departure_label = lv.label(self.tile2)
+        self.departure_label.set_width(550)
+        self.departure_label.align(lv.ALIGN.TOP_LEFT, 20, 70)
+        self.departure_label.set_text("Waiting for Trafiklab...")
+
 
         # -----------------------------------------------
         # Settings Screen - FR6
@@ -119,17 +142,93 @@ class Application:
         self.transport_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 140) # Positions the dropdown next to the "Transport type" label.
         self.transport_dropdown.add_event_cb(self.on_transport_changed,lv.EVENT.VALUE_CHANGED, None) # Calls on_transport_changed() whenever the user selects a different transportation type.
 
-    def on_stop_changed(self, event):
-        """Updates the selected stop."""
-        dropdown = event.get_target() # Gets the dropdown object that triggered the event.
-        self.selected_stop = dropdown.get_selected_str() # Gets and stores the selected stop.
-        log("Selected stop: " + self.selected_stop) # Prints the selected stop to the log for testing
 
-
-    def on_transport_changed(self, event):
+    """def on_transport_changed(self, event):
         dropdown = event.get_target() # Gets the dropdown object that triggered the event.
         self.transport_type = dropdown.get_selected_str() # Gets the selected option as text and stores it in the transport_type variable.
-        log("Selected transport type: "+ self.transport_type) # Prints the selected transportation type to the log (useful for dropdown testing).
+        log("Selected transport type: "+ self.transport_type) # Prints the selected transportation type to the log (useful for dropdown testing)."""
+
+    #---------------------------------------------------------------------
+    #FR2 -Departure screen displaying live public transport departure data 
+    #---------------------------------------------------------------------
+    #API and departure handling functions
+    @staticmethod
+    def fetch_json(url):
+        response = None
+        try:
+            response = urequests.get(url)
+            if response.status_code != 200:
+                raise RuntimeError("Trafiklab HTTP %s" % response.status_code)
+            return response.json()
+        finally:
+            if response is not None:
+                response.close()
+
+    def get_stop_id(self):
+        # Returns the ID of the selected stop
+        return STOP_IDS[self.selected_stop]
+
+
+    def get_departures(self):
+        if not network.WLAN(network.STA_IF).isconnected():
+            raise RuntimeError("Wi-Fi is disconnected")
+        stop_id = self.get_stop_id()
+        url = API_BASE + "/departures/" + stop_id + "?key=" + TRAFIKLAB_API_KEY
+        return self.fetch_json(url).get("departures", [])
+    
+    #Departure formating and display functions 
+    @staticmethod
+    def format_status(dep):
+        if dep.get("canceled", False):
+            return "Cancelled"
+        if not dep.get("is_realtime", False):
+            return "Scheduled"
+        delay = dep.get("delay") or 0
+        if delay >= 60:
+            return "Delayed %dm" % (delay // 60)
+        if delay <= -60:
+            return "Early %dm" % ((-delay) // 60)
+        return "On time"
+
+    def update_departure_screen(self):
+        self.departure_label.set_text("Loading departures...")
+        try:
+            departures = self.get_departures()
+            mode = TRANSPORT_MODES[self.transport_type]
+            lines = ["Time   Line   Destination        Status"]
+            shown = 0
+            for dep in departures:
+                route = dep.get("route") or {}
+                if mode and route.get("transport_mode") != mode:
+                    continue
+                timestamp = dep.get("realtime") or dep.get("scheduled") or ""
+                hhmm = timestamp[11:16] if len(timestamp) >= 16 else "--:--"
+                line = str(route.get("designation") or route.get("name") or "-")
+                destination = route.get("direction")
+                if not destination:
+                    destination = (route.get("destination") or {}).get("name") or "-"
+                status = self.format_status(dep)
+                lines.append("%s   %s   %s   %s" % (hhmm, line, destination, status))
+                shown += 1
+                if shown == 6:
+                    break
+            if shown == 0:
+                self.departure_label.set_text("No departures for the selected stop/type.")
+            else:
+                self.departure_label.set_text("\n".join(lines) + "\n\nData: Trafiklab.se")
+        except Exception as error:
+            log("Departure loading error: %r" % (error,))
+            self.departure_label.set_text("No live data available")
+
+    def on_stop_changed(self, event):
+        self.selected_stop = event.get_target().get_selected_str()
+        log("Selected stop: " + self.selected_stop)
+        self.update_departure_screen()
+
+    def on_transport_changed(self, event):
+        self.transport_type = event.get_target().get_selected_str()
+        log("Selected transport type: " + self.transport_type)
+        self.update_departure_screen()
 
 
     @staticmethod
