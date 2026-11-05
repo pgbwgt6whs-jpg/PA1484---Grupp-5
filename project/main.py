@@ -80,11 +80,9 @@ class Application:
         self.traffic_settings_label.set_text("Traffic data display")
         self.traffic_settings_label.align(lv.ALIGN.TOP_LEFT, 50, 100) # Positions the section label below the Settings title.
 
-
         # -----------------------------------------------
         # Stop selection - FR7
         # -----------------------------------------------
-
         # Creates a label for the stop selection.
         self.stop_label = lv.label(self.tile3)
         self.stop_label.set_text("Select stop")
@@ -92,10 +90,7 @@ class Application:
 
         # Creates a dropdown menu for selecting a stop.
         self.stop_dropdown = lv.dropdown(self.tile3)    
-        self.stop_dropdown.set_options(
-             "Karlskrona Centralstation\n"
-             "Campus Gräsvik"
-        )  # Adds the available stops to the dropdown menu.    
+        self.stop_dropdown.set_options("Karlskrona Centralstation\n" "Campus Gräsvik")  # Adds the available stops to the dropdown menu.    
 
         self.stop_dropdown.set_selected(0)  # Selects "Karlskrona Centralstation" as the default stop (dropdown indexes start at 0).  
         self.stop_dropdown.set_width(250)  # Sets the width of the stop dropdown menu.
@@ -105,11 +100,12 @@ class Application:
             self.on_stop_changed,
             lv.EVENT.VALUE_CHANGED,
             None
-        )  # Calls on_stop_changed() when the user selects a different stop.
+            )  # Calls on_stop_changed() when the user selects a different stop.
 
 
-
+        # -----------------------------------------------
         # Transportation type selection - FR8
+        # -----------------------------------------------
         # Creates a label describing the transportation type dropdown.
         self.transport_label = lv.label(self.tile3)
         self.transport_label.set_text("Transport type")
