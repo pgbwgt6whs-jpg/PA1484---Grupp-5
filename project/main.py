@@ -1,5 +1,11 @@
 import sys
 import time
+<<<<<<< HEAD
+=======
+
+import json
+
+>>>>>>> f0260f7a4315925719ca016646128196f24e5888
 import lvgl as lv
 import network
 import urequests 
@@ -26,6 +32,8 @@ class Application:
         self.tile2_dark = False
         self.transport_type = "All" # Stores the currently selected transportation type, where "All" is used as the default value.
         self.selected_stop = "Karlskrona Centralstation"  # Stores the currently selected stop, with Karlskrona Centralstation as the default value.
+
+        self.load_settings()
 
         self.create_ui()
         self.connect_wifi()
@@ -106,9 +114,15 @@ class Application:
 
         # Creates a dropdown menu for selecting a stop.
         self.stop_dropdown = lv.dropdown(self.tile3)    
-        self.stop_dropdown.set_options("Karlskrona Centralstation\n" "Campus Gräsvik")  # Adds the available stops to the dropdown menu.    
+        self.stop_dropdown.set_options("Karlskrona Centralstation\n" "Campus Gräsvik")  # Adds the available stops to the dropdown menu.   
 
-        self.stop_dropdown.set_selected(0)  # Selects "Karlskrona Centralstation" as the default stop (dropdown indexes start at 0).  
+        # Selects the previously saved stop instead of always selecting Karlskrona Centralstation
+        stops = ["Karlskrona Centralstation", "Campus Gräsvik"] 
+        if self.selected_stop in stops:
+            self.stop_dropdown.set_selected(stops.index(self.selected_stop))
+        else:
+            self.stop_dropdown.set_selected(0) # Selects "Karlskrona Centralstation" as the default stop (dropdown indexes start at 0).
+  
         self.stop_dropdown.set_width(250)  # Sets the width of the stop dropdown menu.
         self.stop_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 210)  # Positions the stop dropdown next to the "Select stop" label.
 
@@ -130,11 +144,33 @@ class Application:
         # Dropdown menu implementation
         self.transport_dropdown = lv.dropdown(self.tile3) # Creates a dropdown menu on the settings screen.
         self.transport_dropdown.set_options("Bus\nTrain\nFerry\nAll") # Adds the four transportation types required by FR8.
-        self.transport_dropdown.set_selected(3) # Selects "All" as the default option (dropdown indexes start at 0).
+        # FR9
+        transport_options = ["Bus", "Train", "Ferry", "All"]
+
+        if self.transport_type in transport_options:
+            self.transport_dropdown.set_selected(transport_options.index(self.transport_type)) # Selects the previously saved transportation type instead of always selecting "All"
+        else:
+            self.transport_dropdown.set_selected(3) # Selects "All" as the default option (dropdown indexes start at 0).
+
         self.transport_dropdown.set_width(200) # Sets the width of the dropdown menu.
         self.transport_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 140) # Positions the dropdown next to the "Transport type" label.
         self.transport_dropdown.add_event_cb(self.on_transport_changed,lv.EVENT.VALUE_CHANGED, None) # Calls on_transport_changed() whenever the user selects a different transportation type.
 
+        # FR9: Save settings button
+        self.save_button = lv.button(self.tile3)
+        self.save_button.set_size(200, 45)
+        self.save_button.align(lv.ALIGN.TOP_MID, 0, 290)
+        # Create text inside the save button
+        self.save_button_label = lv.label(self.save_button)
+        self.save_button_label.set_text("Save as default")
+        self.save_button_label.center()
+
+        self.save_button.add_event_cb(self.save_settings, lv.EVENT.CLICKED, None) # Calls save_settings() when user clicks the button
+        self.save_status_label = lv.label(self.tile3) # Creates label to display confirmation message
+        self.save_status_label.set_text("")
+        self.save_status_label.align(lv.ALIGN.TOP_MID, 0, 350)
+
+       
     def on_stop_changed(self, event):
         """Updates the selected stop."""
         dropdown = event.get_target() # Gets the dropdown object that triggered the event.
@@ -219,9 +255,49 @@ class Application:
         self.update_departure_screen()
 
     def on_transport_changed(self, event):
+<<<<<<< HEAD
         self.transport_type = event.get_target().get_selected_str()
         log("Selected transport type: " + self.transport_type)
         self.update_departure_screen()
+=======
+        dropdown = event.get_target() # Gets the dropdown object that triggered the event.
+        self.transport_type = dropdown.get_selected_str() # Gets the selected option as text and stores it in the transport_type variable.
+        log("Selected transport type: "+ self.transport_type) # Prints the selected transportation type to the log (useful for dropdown testing).
+
+    #FR9 Save settings as default
+    def save_settings(self, event): #Saves selected settings to ESP32
+    settings = {"transport_type": self.transport_type, "selected_stop": self.selected_stop} # Creates a dictionary containing the selected settings
+    try:
+        with open("settings.json", "w") as file:
+            json.dump(settings, file)          #Opens a JSON file and writes selected settings, the file is stored in the ESP32 filesystem
+        
+        log("Settings saved successfully") # Prints confirmation message
+        self.save_status_label.set_text("Settings saved!") # Displays confirmation message on settings screen
+
+    except Exception as error:
+        log("Error saving settings: %r" % error) # Displays an erorr message if saving fails
+        self.save_status_label.set_text("Could not save settings")
+
+def load_settings(self): # Loads previously saved default settings
+
+    try:
+        with open("settings.json", "r") as file: #Opens the JSON file containing saved settings
+            settings = json.load(file)
+        
+        valid_transports = ["Bus", "Train", "Ferry", "All"]
+        valid_stops = ["Karlskrona Centralstation", "Campus Gräsvik"]
+
+        saved_transport = settings.get("transport_type") 
+        saved_stop = settings.get("selected_stop")
+
+        if saved_transport in valid_transports: #Updates transport type if saved value is valid
+            self.transport_type = saved_transport
+        if saved_stop in valid_stops:
+            self.selected_stop = saved_stop
+        log("Default settings loaded successfully")
+    except (OSError, ValueError, TypeError):        #Usingg default settings if no valid saved settings found
+        log("No valid saved settings found. Using original defaults.")
+>>>>>>> f0260f7a4315925719ca016646128196f24e5888
 
     @staticmethod
     def connect_wifi():
@@ -244,3 +320,5 @@ except Exception as error:
     log("FATAL: %r" % (error,))
     sys.print_exception(error)
     raise
+
+#FR 9 - Save settings as default
