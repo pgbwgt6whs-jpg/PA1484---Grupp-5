@@ -165,37 +165,37 @@ class Application:
 
     #FR9 Save settings as default
     def save_settings(self, event): #Saves selected settings to ESP32
-    settings = {"transport_type": self.transport_type, "selected_stop": self.selected_stop} # Creates a dictionary containing the selected settings
-    try:
-        with open("settings.json", "w") as file:
-            json.dump(settings, file)          #Opens a JSON file and writes selected settings, the file is stored in the ESP32 filesystem
+        settings = {"transport_type": self.transport_type, "selected_stop": self.selected_stop} # Creates a dictionary containing the selected settings
+        try:
+            with open("settings.json", "w") as file:
+                json.dump(settings, file)          #Opens a JSON file and writes selected settings, the file is stored in the ESP32 filesystem
         
-        log("Settings saved successfully") # Prints confirmation message
-        self.save_status_label.set_text("Settings saved!") # Displays confirmation message on settings screen
+            log("Settings saved successfully") # Prints confirmation message
+            self.save_status_label.set_text("Settings saved!") # Displays confirmation message on settings screen
 
-    except Exception as error:
-        log("Error saving settings: %r" % error) # Displays an erorr message if saving fails
-        self.save_status_label.set_text("Could not save settings")
+        except Exception as error:
+            log("Error saving settings: %r" % error) # Displays an erorr message if saving fails
+            self.save_status_label.set_text("Could not save settings")
 
-def load_settings(self): # Loads previously saved default settings
+    def load_settings(self): # Loads previously saved default settings
 
-    try:
-        with open("settings.json", "r") as file: #Opens the JSON file containing saved settings
-            settings = json.load(file)
+        try:
+            with open("settings.json", "r") as file: #Opens the JSON file containing saved settings
+                settings = json.load(file)
         
-        valid_transports = ["Bus", "Train", "Ferry", "All"]
-        valid_stops = ["Karlskrona Centralstation", "Campus Gräsvik"]
+            valid_transports = ["Bus", "Train", "Ferry", "All"]
+            valid_stops = ["Karlskrona Centralstation", "Campus Gräsvik"]
 
-        saved_transport = settings.get("transport_type") 
-        saved_stop = settings.get("selected_stop")
+            saved_transport = settings.get("transport_type") 
+            saved_stop = settings.get("selected_stop")
 
-        if saved_transport in valid_transports: #Updates transport type if saved value is valid
-            self.transport_type = saved_transport
-        if saved_stop in valid_stops:
-            self.selected_stop = saved_stop
-        log("Default settings loaded successfully")
-    except (OSError, ValueError, TypeError):        #Usingg default settings if no valid saved settings found
-        log("No valid saved settings found. Using original defaults.")
+            if saved_transport in valid_transports: #Updates transport type if saved value is valid
+                self.transport_type = saved_transport
+            if saved_stop in valid_stops:
+                self.selected_stop = saved_stop
+            log("Default settings loaded successfully")
+        except (OSError, ValueError, TypeError):        #Usingg default settings if no valid saved settings found
+            log("No valid saved settings found. Using original defaults.")
 
     @staticmethod
     def connect_wifi():
@@ -219,4 +219,4 @@ except Exception as error:
     sys.print_exception(error)
     raise
 
-#FR 9 - Save settings as default
+
