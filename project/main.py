@@ -4,6 +4,9 @@ import time
 import lvgl as lv
 import network
 
+import json
+
+
 from board_lvgl import start_board
 from debug_log import log
 
@@ -153,3 +156,5 @@ except Exception as error:
     log("FATAL: %r" % (error,))
     sys.print_exception(error)
     raise
+
+#FR 9 - Save settings as default
