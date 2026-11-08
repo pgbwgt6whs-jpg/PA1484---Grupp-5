@@ -3,12 +3,18 @@ import time
 <<<<<<< HEAD
 =======
 
+<<<<<<< HEAD
 import json
 
 >>>>>>> f0260f7a4315925719ca016646128196f24e5888
+=======
+>>>>>>> parent of f0260f7 (Update main.py)
 import lvgl as lv
 import network
 import urequests 
+
+import json
+
 
 from board_lvgl import start_board
 from debug_log import log
@@ -32,8 +38,6 @@ class Application:
         self.tile2_dark = False
         self.transport_type = "All" # Stores the currently selected transportation type, where "All" is used as the default value.
         self.selected_stop = "Karlskrona Centralstation"  # Stores the currently selected stop, with Karlskrona Centralstation as the default value.
-
-        self.load_settings()
 
         self.create_ui()
         self.connect_wifi()
@@ -114,15 +118,9 @@ class Application:
 
         # Creates a dropdown menu for selecting a stop.
         self.stop_dropdown = lv.dropdown(self.tile3)    
-        self.stop_dropdown.set_options("Karlskrona Centralstation\n" "Campus Gräsvik")  # Adds the available stops to the dropdown menu.   
+        self.stop_dropdown.set_options("Karlskrona Centralstation\n" "Campus Gräsvik")  # Adds the available stops to the dropdown menu.    
 
-        # Selects the previously saved stop instead of always selecting Karlskrona Centralstation
-        stops = ["Karlskrona Centralstation", "Campus Gräsvik"] 
-        if self.selected_stop in stops:
-            self.stop_dropdown.set_selected(stops.index(self.selected_stop))
-        else:
-            self.stop_dropdown.set_selected(0) # Selects "Karlskrona Centralstation" as the default stop (dropdown indexes start at 0).
-  
+        self.stop_dropdown.set_selected(0)  # Selects "Karlskrona Centralstation" as the default stop (dropdown indexes start at 0).  
         self.stop_dropdown.set_width(250)  # Sets the width of the stop dropdown menu.
         self.stop_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 210)  # Positions the stop dropdown next to the "Select stop" label.
 
@@ -144,33 +142,11 @@ class Application:
         # Dropdown menu implementation
         self.transport_dropdown = lv.dropdown(self.tile3) # Creates a dropdown menu on the settings screen.
         self.transport_dropdown.set_options("Bus\nTrain\nFerry\nAll") # Adds the four transportation types required by FR8.
-        # FR9
-        transport_options = ["Bus", "Train", "Ferry", "All"]
-
-        if self.transport_type in transport_options:
-            self.transport_dropdown.set_selected(transport_options.index(self.transport_type)) # Selects the previously saved transportation type instead of always selecting "All"
-        else:
-            self.transport_dropdown.set_selected(3) # Selects "All" as the default option (dropdown indexes start at 0).
-
+        self.transport_dropdown.set_selected(3) # Selects "All" as the default option (dropdown indexes start at 0).
         self.transport_dropdown.set_width(200) # Sets the width of the dropdown menu.
         self.transport_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 140) # Positions the dropdown next to the "Transport type" label.
         self.transport_dropdown.add_event_cb(self.on_transport_changed,lv.EVENT.VALUE_CHANGED, None) # Calls on_transport_changed() whenever the user selects a different transportation type.
 
-        # FR9: Save settings button
-        self.save_button = lv.button(self.tile3)
-        self.save_button.set_size(200, 45)
-        self.save_button.align(lv.ALIGN.TOP_MID, 0, 290)
-        # Create text inside the save button
-        self.save_button_label = lv.label(self.save_button)
-        self.save_button_label.set_text("Save as default")
-        self.save_button_label.center()
-
-        self.save_button.add_event_cb(self.save_settings, lv.EVENT.CLICKED, None) # Calls save_settings() when user clicks the button
-        self.save_status_label = lv.label(self.tile3) # Creates label to display confirmation message
-        self.save_status_label.set_text("")
-        self.save_status_label.align(lv.ALIGN.TOP_MID, 0, 350)
-
-       
     def on_stop_changed(self, event):
         """Updates the selected stop."""
         dropdown = event.get_target() # Gets the dropdown object that triggered the event.
@@ -264,6 +240,7 @@ class Application:
         self.transport_type = dropdown.get_selected_str() # Gets the selected option as text and stores it in the transport_type variable.
         log("Selected transport type: "+ self.transport_type) # Prints the selected transportation type to the log (useful for dropdown testing).
 
+<<<<<<< HEAD
     #FR9 Save settings as default
     def save_settings(self, event): #Saves selected settings to ESP32
     settings = {"transport_type": self.transport_type, "selected_stop": self.selected_stop} # Creates a dictionary containing the selected settings
@@ -298,6 +275,8 @@ def load_settings(self): # Loads previously saved default settings
     except (OSError, ValueError, TypeError):        #Usingg default settings if no valid saved settings found
         log("No valid saved settings found. Using original defaults.")
 >>>>>>> f0260f7a4315925719ca016646128196f24e5888
+=======
+>>>>>>> parent of f0260f7 (Update main.py)
 
     @staticmethod
     def connect_wifi():
