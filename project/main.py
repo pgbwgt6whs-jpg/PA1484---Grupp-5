@@ -65,7 +65,7 @@ class Application:
             "Public Transportation Information\n"
             "Version 1.0\n"
             "Grupp 5\n"
-            "Members: Mette, Emily, \nSedra, Elsa, Ayat"
+            "Members: Mette, Emily, \nSedra, Elsa & Ayat"
             "\nAll data is provided\nby TrafikLab"
         )
         self.tile1_label.set_text(Intro_text)
@@ -199,8 +199,10 @@ class Application:
         stop_id = self.get_stop_id()
         url = API_BASE + "/departures/" + stop_id + "?key=" + TRAFIKLAB_API_KEY
         return self.fetch_json(url).get("departures", [])
-    
-    #Departure formating and display functions 
+
+    #----------------------------------------------------------------
+    #FR2 - Departure formating and display functions 
+    #----------------------------------------------------------------
     @staticmethod
     def format_status(dep):
         if dep.get("canceled", False):
