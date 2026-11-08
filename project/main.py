@@ -1,7 +1,6 @@
 import sys
 import time
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
 
 <<<<<<< HEAD
@@ -10,9 +9,6 @@ import json
 >>>>>>> f0260f7a4315925719ca016646128196f24e5888
 =======
 >>>>>>> parent of f0260f7 (Update main.py)
-=======
-import json
->>>>>>> 809c7cf477a14954aba4573cd2c9cb8228fc0844
 import lvgl as lv
 import network
 import urequests 
@@ -235,11 +231,15 @@ class Application:
         self.update_departure_screen()
 
     def on_transport_changed(self, event):
+<<<<<<< HEAD
         self.transport_type = event.get_target().get_selected_str()
         log("Selected transport type: " + self.transport_type)
         self.update_departure_screen()
+=======
+        dropdown = event.get_target() # Gets the dropdown object that triggered the event.
+        self.transport_type = dropdown.get_selected_str() # Gets the selected option as text and stores it in the transport_type variable.
+        log("Selected transport type: "+ self.transport_type) # Prints the selected transportation type to the log (useful for dropdown testing).
 
-<<<<<<< HEAD
 <<<<<<< HEAD
     #FR9 Save settings as default
     def save_settings(self, event): #Saves selected settings to ESP32
@@ -250,63 +250,23 @@ class Application:
         
         log("Settings saved successfully") # Prints confirmation message
         self.save_status_label.set_text("Settings saved!") # Displays confirmation message on settings screen
-=======
->>>>>>> 809c7cf477a14954aba4573cd2c9cb8228fc0844
 
-    # FR9 - Save settings as default
-    def save_settings(self, event):
-        # Saves the selected settings to ESP32 flash memory."""
+    except Exception as error:
+        log("Error saving settings: %r" % error) # Displays an erorr message if saving fails
+        self.save_status_label.set_text("Could not save settings")
 
-        # Creates a dictionary containing the selected settings.
-        settings = {
-            "transport_type": self.transport_type,
-            "selected_stop": self.selected_stop
-        }
+def load_settings(self): # Loads previously saved default settings
 
-        try:
-            # Opens a JSON file and writes the selected settings.
-            with open("settings.json", "w") as file:
-                json.dump(settings, file)
+    try:
+        with open("settings.json", "r") as file: #Opens the JSON file containing saved settings
+            settings = json.load(file)
+        
+        valid_transports = ["Bus", "Train", "Ferry", "All"]
+        valid_stops = ["Karlskrona Centralstation", "Campus Gräsvik"]
 
-            log("Settings saved successfully")
-            self.save_status_label.set_text("Settings saved!")
+        saved_transport = settings.get("transport_type") 
+        saved_stop = settings.get("selected_stop")
 
-        except Exception as error:
-            log("Error saving settings: %r" % (error,))
-            self.save_status_label.set_text("Could not save settings")
-
-    def load_settings(self):
-        """Loads previously saved default settings."""
-
-        try:
-            # Opens the JSON file containing saved settings.
-            with open("settings.json", "r") as file:
-                settings = json.load(file)
-
-            valid_transports = ["Bus", "Train", "Ferry", "All"]
-            valid_stops = [
-                "Karlskrona Centralstation",
-                "Campus Gräsvik"
-            ]
-
-            saved_transport = settings.get("transport_type")
-            saved_stop = settings.get("selected_stop")
-
-            # Updates transport type if the saved value is valid.
-            if saved_transport in valid_transports:
-                self.transport_type = saved_transport
-
-            # Updates selected stop if the saved value is valid.
-            if saved_stop in valid_stops:
-                self.selected_stop = saved_stop
-
-            log("Default settings loaded successfully")
-
-        except (OSError, ValueError, TypeError):
-            # Uses original defaults if no valid saved settings exist.
-            log("No valid saved settings found. Using original defaults.")
-
-<<<<<<< HEAD
         if saved_transport in valid_transports: #Updates transport type if saved value is valid
             self.transport_type = saved_transport
         if saved_stop in valid_stops:
@@ -317,8 +277,6 @@ class Application:
 >>>>>>> f0260f7a4315925719ca016646128196f24e5888
 =======
 >>>>>>> parent of f0260f7 (Update main.py)
-=======
->>>>>>> 809c7cf477a14954aba4573cd2c9cb8228fc0844
 
     @staticmethod
     def connect_wifi():
@@ -342,4 +300,4 @@ except Exception as error:
     sys.print_exception(error)
     raise
 
-
+#FR 9 - Save settings as default
