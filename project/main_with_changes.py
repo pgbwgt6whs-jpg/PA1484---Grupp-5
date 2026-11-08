@@ -1,12 +1,14 @@
 import sys
 import time
-import json      #For handeling API data 
-import urequests #For API requests
+import json
 import lvgl as lv
 import network
+import urequests 
 
 from board_lvgl import start_board
 from debug_log import log
+
+
 from secrets import WIFI_SSID, WIFI_PASSWORD, TRAFIKLAB_API_KEY
 
 API_BASE = "https://realtime-api.trafiklab.se/v1"
@@ -25,9 +27,12 @@ class Application:
         self.tile2_dark = False
         self.transport_type = "All" # Stores the currently selected transportation type, where "All" is used as the default value.
         self.selected_stop = "Karlskrona Centralstation"  # Stores the currently selected stop, with Karlskrona Centralstation as the default value.
+
+        self.load_settings()
+
         self.create_ui()
         self.connect_wifi()
-        self.update_departure_screen() 
+        self.update_departure_screen()
         log("student application ready")
 
     @staticmethod
@@ -43,10 +48,6 @@ class Application:
     def on_tile2_clicked(self, _event):
         self.tile2_dark = not self.tile2_dark
         self.apply_tile_colors(self.tile2, self.tile2_label, self.tile2_dark)
-        self.departure_label.set_style_text_color(
-            lv.color_hex(0xFFFFFF if self.tile2_dark else 0x000000),
-            0
-        )
 
     def create_ui(self):
         'Function: Creates UI'
@@ -59,35 +60,30 @@ class Application:
         self.tile2 = self.tileview.add_tile(1, 0, lv.DIR.LEFT | lv.DIR.RIGHT) # Tile 2 is located between tile 1 och tile 3, so navigation is allowed in both directions.
         self.tile3 = self.tileview.add_tile(2, 0, lv.DIR.LEFT) # Tile 3 is the settings screen, so it can be swiped back to tile 2.
 
-        #-----------------------------------------------
-        #Intro Screen -FR1
-        #-----------------------------------------------
         self.tile1_label = lv.label(self.tile1)
         Intro_text = (
             "Public Transportation Information\n"
             "Version 1.0\n"
             "Grupp 5\n"
-            "Members: Mette, Emily, \nSedra, Elsa and Ayat"
-            "All data is provided by TrafikLab"
+            "Members: Mette, Emily, \nSedra, Elsa, Ayat"
+            "\nAll data is provided\nby TrafikLab"
         )
         self.tile1_label.set_text(Intro_text)
         self.tile1_label.set_style_text_font(lv.font_montserrat_28, 0)
         self.tile1_label.center()
         self.apply_tile_colors(self.tile1, self.tile1_label, False)
-
-        self.tile2_label = lv.label(self.tile2)
-        self.tile2_label.set_text("Departures")
+        
+        
+        #Creatig departure screen - FR2
+        self.departure_label=lv.label(self.tile2)
+        self.tile2_label = self.departure_label 
+        self.tile2_label.set_text("Loadind departures...")
+        self.departure_label.set_width(550) 
         self.tile2_label.set_style_text_font(lv.font_montserrat_28, 0)
-        self.tile2_label.center()
-        self.apply_tile_colors(self.tile2, self.tile2_label, False)
+        self.tile2_label.align(lv.ALIGN.TOP_LEFT, 20, 20)
+        self.apply_tile_colors(self.tile2, self.departure_label, False)
         self.tile2.add_flag(lv.obj.FLAG.CLICKABLE)
         self.tile2.add_event_cb(self.on_tile2_clicked, lv.EVENT.CLICKED, None)
-
-        self.departure_label = lv.label(self.tile2)
-        self.departure_label.set_width(550)
-        self.departure_label.align(lv.ALIGN.TOP_LEFT, 20, 70)
-        self.departure_label.set_text("Waiting for Trafiklab...")
-
 
         # -----------------------------------------------
         # Settings Screen - FR6
@@ -103,11 +99,9 @@ class Application:
         self.traffic_settings_label.set_text("Traffic data display")
         self.traffic_settings_label.align(lv.ALIGN.TOP_LEFT, 50, 100) # Positions the section label below the Settings title.
 
-
         # -----------------------------------------------
         # Stop selection - FR7
         # -----------------------------------------------
-
         # Creates a label for the stop selection.
         self.stop_label = lv.label(self.tile3)
         self.stop_label.set_text("Select stop")
@@ -115,12 +109,15 @@ class Application:
 
         # Creates a dropdown menu for selecting a stop.
         self.stop_dropdown = lv.dropdown(self.tile3)    
-        self.stop_dropdown.set_options(
-             "Karlskrona Centralstation\n"
-             "Campus Gräsvik"
-        )  # Adds the available stops to the dropdown menu.    
+        self.stop_dropdown.set_options("Karlskrona Centralstation\n" "Campus Gräsvik")  # Adds the available stops to the dropdown menu.   
 
-        self.stop_dropdown.set_selected(0)  # Selects "Karlskrona Centralstation" as the default stop (dropdown indexes start at 0).  
+        # Selects the previously saved stop instead of always selecting Karlskrona Centralstation
+        stops = ["Karlskrona Centralstation", "Campus Gräsvik"] 
+        if self.selected_stop in stops:
+            self.stop_dropdown.set_selected(stops.index(self.selected_stop))
+        else:
+            self.stop_dropdown.set_selected(0) # Selects "Karlskrona Centralstation" as the default stop (dropdown indexes start at 0).
+  
         self.stop_dropdown.set_width(250)  # Sets the width of the stop dropdown menu.
         self.stop_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 210)  # Positions the stop dropdown next to the "Select stop" label.
 
@@ -128,11 +125,12 @@ class Application:
             self.on_stop_changed,
             lv.EVENT.VALUE_CHANGED,
             None
-        )  # Calls on_stop_changed() when the user selects a different stop.
+            )  # Calls on_stop_changed() when the user selects a different stop.
 
 
-
+        # -----------------------------------------------
         # Transportation type selection - FR8
+        # -----------------------------------------------
         # Creates a label describing the transportation type dropdown.
         self.transport_label = lv.label(self.tile3)
         self.transport_label.set_text("Transport type")
@@ -141,16 +139,38 @@ class Application:
         # Dropdown menu implementation
         self.transport_dropdown = lv.dropdown(self.tile3) # Creates a dropdown menu on the settings screen.
         self.transport_dropdown.set_options("Bus\nTrain\nFerry\nAll") # Adds the four transportation types required by FR8.
-        self.transport_dropdown.set_selected(3) # Selects "All" as the default option (dropdown indexes start at 0).
+        # FR9
+        transport_options = ["Bus", "Train", "Ferry", "All"]
+
+        if self.transport_type in transport_options:
+            self.transport_dropdown.set_selected(transport_options.index(self.transport_type)) # Selects the previously saved transportation type instead of always selecting "All"
+        else:
+            self.transport_dropdown.set_selected(3) # Selects "All" as the default option (dropdown indexes start at 0).
+
         self.transport_dropdown.set_width(200) # Sets the width of the dropdown menu.
         self.transport_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 140) # Positions the dropdown next to the "Transport type" label.
         self.transport_dropdown.add_event_cb(self.on_transport_changed,lv.EVENT.VALUE_CHANGED, None) # Calls on_transport_changed() whenever the user selects a different transportation type.
 
+        # FR9: Save settings button
+        self.save_button = lv.button(self.tile3)
+        self.save_button.set_size(200, 45)
+        self.save_button.align(lv.ALIGN.TOP_MID, 0, 290)
+        # Create text inside the save button
+        self.save_button_label = lv.label(self.save_button)
+        self.save_button_label.set_text("Save as default")
+        self.save_button_label.center()
 
-    """def on_transport_changed(self, event):
+        self.save_button.add_event_cb(self.save_settings, lv.EVENT.CLICKED, None) # Calls save_settings() when user clicks the button
+        self.save_status_label = lv.label(self.tile3) # Creates label to display confirmation message
+        self.save_status_label.set_text("")
+        self.save_status_label.align(lv.ALIGN.TOP_MID, 0, 350)
+
+       
+    def on_stop_changed(self, event):
+        """Updates the selected stop."""
         dropdown = event.get_target() # Gets the dropdown object that triggered the event.
-        self.transport_type = dropdown.get_selected_str() # Gets the selected option as text and stores it in the transport_type variable.
-        log("Selected transport type: "+ self.transport_type) # Prints the selected transportation type to the log (useful for dropdown testing)."""
+        self.selected_stop = dropdown.get_selected_str() # Gets and stores the selected stop.
+        log("Selected stop: " + self.selected_stop) # Prints the selected stop to the log for testing
 
     #---------------------------------------------------------------------
     #FR2 -Departure screen displaying live public transport departure data 
@@ -222,7 +242,7 @@ class Application:
                 self.departure_label.set_text("\n".join(lines) + "\n\nData: Trafiklab.se")
         except Exception as error:
             log("Departure loading error: %r" % (error,))
-            self.departure_label.set_text("No live data available")
+            self.departure_label.set_text("Trafiklab ERROR:\n%s\n%s" %(type(error).__name__, str(error)))
 
     def on_stop_changed(self, event):
         self.selected_stop = event.get_target().get_selected_str()
@@ -233,6 +253,60 @@ class Application:
         self.transport_type = event.get_target().get_selected_str()
         log("Selected transport type: " + self.transport_type)
         self.update_departure_screen()
+
+
+    # FR9 - Save settings as default
+    def save_settings(self, event):
+        # Saves the selected settings to ESP32 flash memory."""
+
+        # Creates a dictionary containing the selected settings.
+        settings = {
+            "transport_type": self.transport_type,
+            "selected_stop": self.selected_stop
+        }
+
+        try:
+            # Opens a JSON file and writes the selected settings.
+            with open("settings.json", "w") as file:
+                json.dump(settings, file)
+
+            log("Settings saved successfully")
+            self.save_status_label.set_text("Settings saved!")
+
+        except Exception as error:
+            log("Error saving settings: %r" % (error,))
+            self.save_status_label.set_text("Could not save settings")
+
+    def load_settings(self):
+        """Loads previously saved default settings."""
+
+        try:
+            # Opens the JSON file containing saved settings.
+            with open("settings.json", "r") as file:
+                settings = json.load(file)
+
+            valid_transports = ["Bus", "Train", "Ferry", "All"]
+            valid_stops = [
+                "Karlskrona Centralstation",
+                "Campus Gräsvik"
+            ]
+
+            saved_transport = settings.get("transport_type")
+            saved_stop = settings.get("selected_stop")
+
+            # Updates transport type if the saved value is valid.
+            if saved_transport in valid_transports:
+                self.transport_type = saved_transport
+
+            # Updates selected stop if the saved value is valid.
+            if saved_stop in valid_stops:
+                self.selected_stop = saved_stop
+
+            log("Default settings loaded successfully")
+
+        except (OSError, ValueError, TypeError):
+            # Uses original defaults if no valid saved settings exist.
+            log("No valid saved settings found. Using original defaults.")
 
 
     @staticmethod
@@ -256,3 +330,5 @@ except Exception as error:
     log("FATAL: %r" % (error,))
     sys.print_exception(error)
     raise
+
+
