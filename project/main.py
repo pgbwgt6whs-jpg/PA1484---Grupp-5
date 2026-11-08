@@ -46,7 +46,38 @@ class Application:
 
     def on_tile2_clicked(self, _event):
         self.tile2_dark = not self.tile2_dark
-        self.apply_tile_colors(self.tile2, self.tile2_label, self.tile2_dark)
+        self.style_departure_screen()
+
+    def style_departure_screen(self):
+            #Apply the selected color theme to the departure board
+            dark = self.tile2_dark
+            bg = 0x0B1324 if dark else 0xF3F6FC
+            card_bg = 0x1B2B43 if dark else 0xFFFFFF
+            fg = 0xFFFFFF if dark else 0x152338
+            muted = 0xB7C7DA if dark else 0x53657A
+    
+            self.tile2.set_style_bg_opa(lv.OPA.COVER, 0)
+            self.tile2.set_style_bg_color(lv.color_hex(bg), 0)
+            self.departure_title.set_style_text_color(lv.color_hex(fg), 0)
+            self.departure_stop_label.set_style_text_color(lv.color_hex(muted), 0)
+            self.departure_info_label.set_style_text_color(lv.color_hex(muted), 0)
+            for label in self.departure_headers:
+                label.set_style_text_color(lv.color_hex(muted), 0)
+            for row in self.departure_rows:
+                row["panel"].set_style_bg_color(lv.color_hex(card_bg), 0)
+                for column in ("time", "line", "destination"):
+                    row[column].set_style_text_color(lv.color_hex(fg), 0)
+                # A status is easier to scan with a separate color.
+                status_text = row["status_text"]
+                if status_text.startswith("Delayed"):
+                    status_color = 0xF9BF65 if dark else 0xA76411
+                elif status_text == "Cancelled":
+                    status_color = 0xFF8C94 if dark else 0xB42332
+                elif status_text == "On time":
+                    status_color = 0x60E0B5 if dark else 0x117D57
+                else:
+                    status_color = muted
+                row["status"].set_style_text_color(lv.color_hex(status_color), 0)
 
     def create_ui(self):
         'Function: Creates UI'
@@ -73,14 +104,55 @@ class Application:
         self.apply_tile_colors(self.tile1, self.tile1_label, False)
         
         
-        #Creatig departure screen - FR2
-        self.departure_label=lv.label(self.tile2)
-        self.tile2_label = self.departure_label 
-        self.tile2_label.set_text("Loadind departures...")
-        self.departure_label.set_width(550) 
-        self.tile2_label.set_style_text_font(lv.font_montserrat_28, 0)
-        self.tile2_label.align(lv.ALIGN.TOP_LEFT, 20, 20)
-        self.apply_tile_colors(self.tile2, self.departure_label, False)
+    #-----------------------------------------------
+    #Creating departure screen - FR2
+    #-----------------------------------------------
+        self.departure_title = lv.label(self.tile2)
+        self.departure_title.set_text("DEPARTURES")
+        self.departure_title.set_style_text_font(lv.font_montserrat_28, 0)
+        self.departure_title.align(lv.ALIGN.TOP_LEFT, 18, 12)
+        self.tile2_label = self.departure_title  # Compatibility with older UI code.
+
+        self.departure_stop_label = lv.label(self.tile2)
+        self.departure_stop_label.set_width(560)
+        self.departure_stop_label.set_text(self.selected_stop)
+        self.departure_stop_label.align(lv.ALIGN.TOP_LEFT, 20, 62)
+
+        self.departure_headers = []
+        for name, x in (("TIME", 28), ("LINE", 115),
+                        ("DESTINATION", 200), ("STATUS", 434)):
+            header = lv.label(self.tile2)
+            header.set_text(name)
+            header.align(lv.ALIGN.TOP_LEFT, x, 101)
+            self.departure_headers.append(header)
+
+        # Fixed positions mean the columns line up with any font.
+        self.departure_rows = []
+        for index in range(6):
+            panel = lv.obj(self.tile2)
+            panel.set_size(568, 42)
+            panel.align(lv.ALIGN.TOP_LEFT, 16, 127 + index * 46)
+            panel.set_style_bg_opa(lv.OPA.COVER, 0)
+            panel.set_style_radius(8, 0)
+            panel.set_style_border_width(0, 0)
+            panel.remove_flag(lv.obj.FLAG.SCROLLABLE)
+            panel.remove_flag(lv.obj.FLAG.CLICKABLE)
+
+            row = {"panel": panel, "status_text": ""}
+            for column, x in (("time", 10), ("line", 98),
+                              ("destination", 182), ("status", 417)):
+                label = lv.label(panel)
+                label.set_text("")
+                label.align(lv.ALIGN.TOP_LEFT, x, 11)
+                row[column] = label
+            self.departure_rows.append(row)
+
+        self.departure_info_label = lv.label(self.tile2)
+        self.departure_info_label.set_width(560)
+        self.departure_info_label.set_text("Waiting for Trafiklab...")
+        self.departure_info_label.align(lv.ALIGN.TOP_LEFT, 20, 413)
+
+        self.style_departure_screen()
         self.tile2.add_flag(lv.obj.FLAG.CLICKABLE)
         self.tile2.add_event_cb(self.on_tile2_clicked, lv.EVENT.CLICKED, None)
 
@@ -215,35 +287,76 @@ class Application:
             return "Early %dm" % ((-delay) // 60)
         return "On time"
 
+    
     def update_departure_screen(self):
-        self.departure_label.set_text("Loading departures...")
+        self.departure_info_label.set_text("Loading departures...")
+
+        self.departure_stop_label.set_text(
+            self.selected_stop + " | " + self.transport_type
+        )
+
+        #Clear old departure information
+        for row in self.departure_rows:
+            for column in ("time", "line", "destination", "status"):
+                row[column].set_text("")
+            row["status_text"] = ""
+
         try:
             departures = self.get_departures()
             mode = TRANSPORT_MODES[self.transport_type]
-            lines = ["Time   Line   Destination        Status"]
             shown = 0
+
             for dep in departures:
                 route = dep.get("route") or {}
+
                 if mode and route.get("transport_mode") != mode:
                     continue
+
+                if shown >= len(self.departure_rows):
+                    break
+
                 timestamp = dep.get("realtime") or dep.get("scheduled") or ""
                 hhmm = timestamp[11:16] if len(timestamp) >= 16 else "--:--"
-                line = str(route.get("designation") or route.get("name") or "-")
+
+                line = str(
+                    route.get("designation") or route.get("name") or "-"
+                )
+
                 destination = route.get("direction")
                 if not destination:
-                    destination = (route.get("destination") or {}).get("name") or "-"
+                    destination = (
+                        (route.get("destination") or {}).get("name") or "-"
+                    )
+
                 status = self.format_status(dep)
-                lines.append("%s   %s   %s   %s" % (hhmm, line, destination, status))
+
+                #Display data in the correct row
+                row = self.departure_rows[shown]
+                row["time"].set_text(hhmm)
+                row["line"].set_text(line[:6])
+                row["destination"].set_text(str(destination)[:20])
+                row["status"].set_text(status)
+                row["status_text"] = status
+
                 shown += 1
-                if shown == 6:
-                    break
+
             if shown == 0:
-                self.departure_label.set_text("No departures for the selected stop/type.")
+                self.departure_info_label.set_text(
+                    "No departures for selected stop/type."
+                )
             else:
-                self.departure_label.set_text("\n".join(lines) + "\n\nData: Trafiklab.se")
+                self.departure_info_label.set_text(
+                    "Live data: Trafiklab.se"
+                )
+
         except Exception as error:
             log("Departure loading error: %r" % (error,))
-            self.departure_label.set_text("Trafiklab ERROR:\n%s\n%s" %(type(error).__name__, str(error)))
+            self.departure_info_label.set_text(
+                "Trafiklab ERROR: %s" % str(error)[:50]
+            )
+
+        #Update colors for light/dark theme
+        self.style_departure_screen()
 
     def on_stop_changed(self, event):
         self.selected_stop = event.get_target().get_selected_str()
