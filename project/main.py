@@ -1,5 +1,6 @@
 import sys
 import time
+import json
 import lvgl as lv
 import network
 import urequests 
@@ -252,6 +253,61 @@ class Application:
         self.transport_type = event.get_target().get_selected_str()
         log("Selected transport type: " + self.transport_type)
         self.update_departure_screen()
+
+
+    # FR9 - Save settings as default
+    def save_settings(self, event):
+        # Saves the selected settings to ESP32 flash memory."""
+
+        # Creates a dictionary containing the selected settings.
+        settings = {
+            "transport_type": self.transport_type,
+            "selected_stop": self.selected_stop
+        }
+
+        try:
+            # Opens a JSON file and writes the selected settings.
+            with open("settings.json", "w") as file:
+                json.dump(settings, file)
+
+            log("Settings saved successfully")
+            self.save_status_label.set_text("Settings saved!")
+
+        except Exception as error:
+            log("Error saving settings: %r" % (error,))
+            self.save_status_label.set_text("Could not save settings")
+
+    def load_settings(self):
+        """Loads previously saved default settings."""
+
+        try:
+            # Opens the JSON file containing saved settings.
+            with open("settings.json", "r") as file:
+                settings = json.load(file)
+
+            valid_transports = ["Bus", "Train", "Ferry", "All"]
+            valid_stops = [
+                "Karlskrona Centralstation",
+                "Campus Gräsvik"
+            ]
+
+            saved_transport = settings.get("transport_type")
+            saved_stop = settings.get("selected_stop")
+
+            # Updates transport type if the saved value is valid.
+            if saved_transport in valid_transports:
+                self.transport_type = saved_transport
+
+            # Updates selected stop if the saved value is valid.
+            if saved_stop in valid_stops:
+                self.selected_stop = saved_stop
+
+            log("Default settings loaded successfully")
+
+        except (OSError, ValueError, TypeError):
+            # Uses original defaults if no valid saved settings exist.
+            log("No valid saved settings found. Using original defaults.")
+
 
     @staticmethod
     def connect_wifi():
