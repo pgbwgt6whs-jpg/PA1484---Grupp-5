@@ -1,5 +1,6 @@
 import sys
 import time
+import json
 import lvgl as lv
 import network
 import urequests 
@@ -236,7 +237,19 @@ class Application:
         self.save_status_label.set_text("")
         self.save_status_label.align(lv.ALIGN.TOP_MID, 0, 350)
 
-       
+        self.save_status_label.align(lv.ALIGN.TOP_MID, 0, 390)
+
+        #FR10 Reset settings button
+        self.reset_button = lv.button(self.tile3)
+        self.reset_button.set_size(200, 45)
+        self.reset_button.align(lv.ALIGN.TOP_MID, 0, 335)
+        # Creates the text inside the reset button
+        self.reset_button_label = lv.label(self.reset_button)
+        self.reset_button_label.set_text("Reset to default")
+        self.reset_button_label.center()
+        #Calls reset_settings() when the button is clicked
+        self.reset_button.add_event_cb(self.reset_settings, lv.EVENT.CLICKED, None)
+        
     def on_stop_changed(self, event):
         """Updates the selected stop."""
         dropdown = event.get_target() # Gets the dropdown object that triggered the event.
@@ -371,7 +384,7 @@ class Application:
     # FR9 - Save settings as default
 
     def save_settings(self, event):
-        """Saves the selected settings to ESP32 flash memory."""
+        #Saves the selected settings to ESP32 flash memory.
 
         settings = {
             "transport_type": self.transport_type,
@@ -391,7 +404,7 @@ class Application:
             self.save_status_label.set_text("Could not save settings")
 
     def load_settings(self):
-        """Loads previously saved default settings."""
+        #Loads previously saved default settings.
 
         try:
             # Reads the saved settings from the JSON file.
@@ -420,6 +433,29 @@ class Application:
         except (OSError, ValueError, TypeError):
             log("No valid saved settings found. Using original defaults.")
 
+        #FR10 Reset setitngs to stored Defaults
+    def reset_settings(self, event):
+        try:
+            with open("settings.json", "r") as file:  # Opens json file containing saved default settings
+                settings = json.load(file)
+            valid_transports = ["Bus", "Train", "Ferry", "All"]
+            valid_stops = ["Karlskrona Centralstation", "Campus Gräsvik"]
+            saved_transport = settings.get("transport_type") #Reads previously saved default settings
+            saved_stop = settings.get("selected_stop")
+            if (saved_transport not in valid_transports or saved_stop not in valid_stops): #Checks if both saved values are valid
+                raise ValueError("Invalid saved settings")
+            self.transport_type = saved_transport #Restores the saved transportation type
+            self.selected_stop = saved_stop #Restores the saved stop
+            self.transport_dropdown.set_selected(valid_transports.index(self.transport_type)) #Updates the transportation type dropdown
+            self.stop_dropdown.set_selected(valid_stops.index(self.selected_stop))   #Updates the stop dropdown
+            self.update_departure_screen() #Updates departures using the restored settings
+            #Display confirmation message
+            log("Settings reset to stored defaults")
+            self.saves_status_label.set_text("Settings reset!")
+        except (OSError, ValueError, TypeError) as error:
+            log("Could not reset settigs: %r" % (error,))
+            self.save_status_label.set_text("No saved defaults found")
+    
     @staticmethod
     def connect_wifi():
         'Function: Connects to WiFi'
