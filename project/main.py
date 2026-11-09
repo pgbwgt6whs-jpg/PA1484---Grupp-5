@@ -235,8 +235,6 @@ class Application:
         self.save_button.add_event_cb(self.save_settings, lv.EVENT.CLICKED, None) # Calls save_settings() when user clicks the button
         self.save_status_label = lv.label(self.tile3) # Creates label to display confirmation message
         self.save_status_label.set_text("")
-        self.save_status_label.align(lv.ALIGN.TOP_MID, 0, 350)
-
         self.save_status_label.align(lv.ALIGN.TOP_MID, 0, 390)
 
         #FR10 Reset settings button
@@ -249,12 +247,6 @@ class Application:
         self.reset_button_label.center()
         #Calls reset_settings() when the button is clicked
         self.reset_button.add_event_cb(self.reset_settings, lv.EVENT.CLICKED, None)
-        
-    def on_stop_changed(self, event):
-        """Updates the selected stop."""
-        dropdown = event.get_target() # Gets the dropdown object that triggered the event.
-        self.selected_stop = dropdown.get_selected_str() # Gets and stores the selected stop.
-        log("Selected stop: " + self.selected_stop) # Prints the selected stop to the log for testing
 
     #---------------------------------------------------------------------
     #FR2 -Departure screen displaying live public transport departure data 
@@ -451,7 +443,7 @@ class Application:
             self.update_departure_screen() #Updates departures using the restored settings
             #Display confirmation message
             log("Settings reset to stored defaults")
-            self.saves_status_label.set_text("Settings reset!")
+            self.save_status_label.set_text("Settings reset!")
         except (OSError, ValueError, TypeError) as error:
             log("Could not reset settigs: %r" % (error,))
             self.save_status_label.set_text("No saved defaults found")
