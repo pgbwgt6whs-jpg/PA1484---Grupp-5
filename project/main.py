@@ -14,6 +14,9 @@ from secrets import WIFI_SSID, WIFI_PASSWORD, TRAFIKLAB_API_KEY
 API_BASE = "https://realtime-api.trafiklab.se/v1"
 # These are name-search paths, not stop IDs. The stop IDs come from Stop Lookup.
 # Stop IDs from Trafiklab Stop Lookup
+
+STATUS_CHECK_INTERVAL_MS = 2000
+
 STOP_IDS = {
     "Karlskrona Centralstation": "740000230",
     "Campus Gräsvik": "740032188"
