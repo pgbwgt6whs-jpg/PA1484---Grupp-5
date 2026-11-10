@@ -28,10 +28,15 @@ class Application:
         self.transport_type = "All" # Stores the currently selected transportation type, where "All" is used as the default value.
         self.selected_stop = "Karlskrona Centralstation"  # Stores the currently selected stop, with Karlskrona Centralstation as the default value.
 
+        #US4.3: track the outcome of the latest API request
+        self.live_data_status = "Not requested yet"
+        self.last_data_update_ms = None
+
         self.load_settings()
 
         self.create_ui()
         self.connect_wifi()
+        self.update_connection_status() 
         self.update_departure_screen()
         log("student application ready")
 
@@ -114,6 +119,18 @@ class Application:
         self.departure_title.align(lv.ALIGN.TOP_LEFT, 18, 12)
         self.tile2_label = self.departure_title  # Compatibility with older UI code.
 
+        # US4.2: a dedicated button makes a fresh request on demand.
+        self.refresh_button = lv.button(self.tile2)
+        self.refresh_button.set_size(118, 42)
+        self.refresh_button.align(lv.ALIGN.TOP_RIGHT, -18, 10)
+        self.refresh_button_label = lv.label(self.refresh_button)
+        self.refresh_button_label.set_text("Refresh")
+        self.refresh_button_label.center()
+        self.refresh_button.add_event_cb(
+            self.on_manual_refresh, lv.EVENT.CLICKED, None
+        )
+
+
         self.departure_stop_label = lv.label(self.tile2)
         self.departure_stop_label.set_width(560)
         self.departure_stop_label.set_text(self.selected_stop)
@@ -165,6 +182,15 @@ class Application:
         self.settings_title.set_text("Settings")
         self.settings_title.set_style_text_font(lv.font_montserrat_28, 0) # Sets the front size of the settings title.
         self.settings_title.align(lv.ALIGN.TOP_MID, 0, 30) # Positions the title at the top center of the screen.
+
+        # US4.3: two independently updated labels on the Settings screen.
+        self.wifi_status_label = lv.label(self.tile3)
+        self.wifi_status_label.set_width(500)
+        self.wifi_status_label.align(lv.ALIGN.TOP_LEFT, 50, 78)
+
+        self.live_data_status_label = lv.label(self.tile3)
+        self.live_data_status_label.set_width(500)
+        self.live_data_status_label.align(lv.ALIGN.TOP_LEFT, 50, 105)
 
         # Creates a label for the traffic data display settings (settings related to how traffic data is displayed can be placed below).
         self.traffic_settings_label = lv.label(self.tile3)
@@ -247,6 +273,48 @@ class Application:
         self.reset_button_label.center()
         #Calls reset_settings() when the button is clicked
         self.reset_button.add_event_cb(self.reset_settings, lv.EVENT.CLICKED, None)
+
+        # US4.3: check Wi-Fi and update elapsed-time text every 2 seconds.
+        self.status_timer = lv.timer_create(
+            self.on_status_timer, STATUS_CHECK_INTERVAL_MS, None
+        )
+        self.update_connection_status()
+
+        # US4.2 - Manual refresh via the existing Trafiklab pipeline.
+        def on_manual_refresh(self, _event):
+            """Request fresh departure data when the Refresh button is pressed."""
+            log("Manual departure refresh requested")
+            self.update_departure_screen()
+
+        # US4.3 - Show real connectivity and the result of the latest fetch.
+        def on_status_timer(self, _timer):
+            """Refresh status labels without making an additional API request."""
+            self.update_connection_status()
+
+        def update_connection_status(self):
+            """Show actual Wi-Fi state and most recent Trafiklab request state."""
+            connected = network.WLAN(network.STA_IF).isconnected()
+            self.wifi_status_label.set_text(
+                "Wi-Fi: Connected" if connected else "Wi-Fi: Disconnected"
+            )
+
+        if not connected:
+            data_text = "Live data: Offline (no Wi-Fi)"
+        elif (self.live_data_status in ("Updated", "No departures")
+              and self.last_data_update_ms is not None):
+            # ticks_diff accounts for MicroPython tick-counter wraparound.
+            elapsed_ms = time.ticks_diff(
+                time.ticks_ms(), self.last_data_update_ms
+            )
+            seconds_ago = max(0, elapsed_ms // 1000)
+            data_text = "Live data: %s (%ds ago)" % (
+                self.live_data_status, seconds_ago
+            )
+        else:
+            data_text = "Live data: " + self.live_data_status
+
+        self.live_data_status_label.set_text(data_text)
+
 
     #---------------------------------------------------------------------
     #FR2 -Departure screen displaying live public transport departure data 
