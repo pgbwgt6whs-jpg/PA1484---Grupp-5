@@ -3,8 +3,7 @@ import time
 import json
 import lvgl as lv
 import network
-import urequests
-
+import urequests 
 
 from board_lvgl import start_board
 from debug_log import log
@@ -42,7 +41,14 @@ class Application:
         self.connect_wifi()
         self.update_connection_status() 
         self.update_departure_screen()
+        self.last_departure_update = time.ticks_ms()
+        self.auto_update_timer = lv.timer_create(
+        self.auto_update_departures,
+            60000,
+            None
+        )
         log("student application ready")
+
 
     @staticmethod
     def apply_tile_colors(tile, label, dark):
@@ -284,23 +290,23 @@ class Application:
         )
         self.update_connection_status()
 
-    # US4.2 - Manual refresh via the existing Trafiklab pipeline.
-    def on_manual_refresh(self, _event):
-        """Request fresh departure data when the Refresh button is pressed."""
-        log("Manual departure refresh requested")
-        self.update_departure_screen()
+        # US4.2 - Manual refresh via the existing Trafiklab pipeline.
+        def on_manual_refresh(self, _event):
+            """Request fresh departure data when the Refresh button is pressed."""
+            log("Manual departure refresh requested")
+            self.update_departure_screen()
 
-    # US4.3 - Show real connectivity and the result of the latest fetch.
-    def on_status_timer(self, _timer):
-        """Refresh status labels without making an additional API request."""
-        self.update_connection_status()
+        # US4.3 - Show real connectivity and the result of the latest fetch.
+        def on_status_timer(self, _timer):
+            """Refresh status labels without making an additional API request."""
+            self.update_connection_status()
 
-    def update_connection_status(self):
-        """Show actual Wi-Fi state and most recent Trafiklab request state."""
-        connected = network.WLAN(network.STA_IF).isconnected()
-        self.wifi_status_label.set_text(
-            "Wi-Fi: Connected" if connected else "Wi-Fi: Disconnected"
-        )
+        def update_connection_status(self):
+            """Show actual Wi-Fi state and most recent Trafiklab request state."""
+            connected = network.WLAN(network.STA_IF).isconnected()
+            self.wifi_status_label.set_text(
+                "Wi-Fi: Connected" if connected else "Wi-Fi: Disconnected"
+            )
 
         if not connected:
             data_text = "Live data: Offline (no Wi-Fi)"
@@ -435,6 +441,15 @@ class Application:
         #Update colors for light/dark theme
         self.style_departure_screen()
 
+
+    # -----------------------------------------------
+    # FR3 - Automatic update of live departure data
+    # -----------------------------------------------
+    def auto_update_departures(self, timer):
+        self.update_departure_screen()
+        self.last_departure_update = time.ticks_ms() 
+
+    
     def on_stop_changed(self, event):
         self.selected_stop = event.get_target().get_selected_str()
         log("Selected stop: " + self.selected_stop)
@@ -444,6 +459,8 @@ class Application:
         self.transport_type = event.get_target().get_selected_str()
         log("Selected transport type: " + self.transport_type)
         self.update_departure_screen()
+
+    
 
     # FR9 - Save settings as default
 
