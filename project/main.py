@@ -94,7 +94,7 @@ class Application:
                 else:
                     status_color = muted
                 row["status"].set_style_text_color(lv.color_hex(status_color), 0)
-
+    
     def create_ui(self):
         'Function: Creates UI'
         self.tileview = lv.tileview(lv.screen_active())
