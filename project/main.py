@@ -104,7 +104,7 @@ class Application:
         # Creates the three main screens as tiles
         self.tile1 = self.tileview.add_tile(0, 0, lv.DIR.RIGHT) # Tile 1 can be swiped to the right.
         self.tile2 = self.tileview.add_tile(1, 0, lv.DIR.LEFT | lv.DIR.RIGHT) # Tile 2 is located between tile 1 och tile 3, so navigation is allowed in both directions.
-        self.tile3 = self.tileview.add_tile(2, 0, lv.DIR.LEFT) # Tile 3 is the settings screen, so it can be swiped back to tile 2.
+        self.tile3 = self.tileview.add_tile(2, 0, lv.DIR.LEFT | lv.DIR.RIGHT) # Tile 3 is the settings screen, so it can be swiped back to tile 2 and swiped to tile 4.
 
         self.tile1_label = lv.label(self.tile1)
         Intro_text = (
