@@ -105,6 +105,7 @@ class Application:
         self.tile1 = self.tileview.add_tile(0, 0, lv.DIR.RIGHT) # Tile 1 can be swiped to the right.
         self.tile2 = self.tileview.add_tile(1, 0, lv.DIR.LEFT | lv.DIR.RIGHT) # Tile 2 is located between tile 1 och tile 3, so navigation is allowed in both directions.
         self.tile3 = self.tileview.add_tile(2, 0, lv.DIR.LEFT | lv.DIR.RIGHT) # Tile 3 is the settings screen, so it can be swiped back to tile 2 and swiped to tile 4.
+        self.tile4 = self.tileview.add_tile(3,0, lv.DIR.LEFT)
 
         self.tile1_label = lv.label(self.tile1)
         Intro_text = (
@@ -136,9 +137,7 @@ class Application:
         self.refresh_button_label = lv.label(self.refresh_button)
         self.refresh_button_label.set_text("Refresh")
         self.refresh_button_label.center()
-        self.refresh_button.add_event_cb(
-            self.on_manual_refresh, lv.EVENT.CLICKED, None
-        )
+        self.refresh_button.add_event_cb(self.on_manual_refresh, lv.EVENT.CLICKED, None)
 
 
         self.departure_stop_label = lv.label(self.tile2)
@@ -289,6 +288,37 @@ class Application:
             self.on_status_timer, STATUS_CHECK_INTERVAL_MS, None
         )
         self.update_connection_status()
+
+        """US5.1 -Journey selection screen"""
+        self.journey_title = lv.label(self.tile4)
+        self.journey_title.set_text("Journey selection")
+        self.journey_title.set_style_text_font(lv.font_montserrat_28, 0) #Creates title with specific font for the journey selection screen
+        self.journey_title.align(lv.ALIGN.TOP_MID, 0, 30)
+        #Creates a label for starting point
+        self.journey_from_label = lv.label(self.tile4) 
+        self.journey_from_label.set_text("From")
+        self.journey_from_label.align(lv.ALIGN.TOP_LEFT, 50, 130)
+        #Creates a dropdown for choosing the starting point
+        self.journey_from_dropdown = lv.dropdown(self.tile4)
+        self.journey_from_dropdown.set_options("Karlskrona Centralstation\n" "Campus Gräsvik")
+        self.journey_from_dropdown.set_selected(0)
+        self.journey_from_dropdown.set_width(250)
+        self.journey_from_dropdown.align(lv.ALIGN.TOP_LEFT, 230, 120)
+        # Creates a label for the destination.
+        self.journey_to_label = lv.label(self.tile4)
+        self.journey_to_label.set_text("To")
+        self.journey_to_label.align(lv.ALIGN.TOP_LEFT, 50, 200)
+        # Creates a dropdown for choosing the destination.
+        self.journey_to_dropdown = lv.dropdown(self.tile4)
+        self.journey_to_dropdown.set_options("Karlskrona Centralstation\n""Campus Gräsvik")
+        self.journey_to_dropdown.set_selected(1)
+        self.journey_to_dropdown.set_width(250)
+        self.journey_to_dropdown.align(lv.ALIGN.TOP_LEFT, 230, 190)
+         # Displays instructions for the user.
+        self.journey_info_label = lv.label(self.tile4)
+        self.journey_info_label.set_text("Select your starting point and destination")
+        self.journey_info_label.align(lv.ALIGN.TOP_MID, 0, 300)
+
 
     # US4.2 - Manual refresh via the existing Trafiklab pipeline.
     def on_manual_refresh(self, _event):
