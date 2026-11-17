@@ -17,10 +17,8 @@ API_BASE = "https://realtime-api.trafiklab.se/v1"
 
 STATUS_CHECK_INTERVAL_MS = 2000
 
-STOP_IDS = {
-    "Karlskrona Centralstation": "740000230",
-    "Campus Gräsvik": "740032188"
-}
+STOP_IDS = {"Karlskrona Centralstation": "740000230","Campus Gräsvik": "740032188"}
+JOURNEY_STOPS = tuple(STOP_IDS)
 TRANSPORT_MODES = {"Bus": "BUS", "Train": "TRAIN", "Ferry": "BOAT", "All": None}
 
 
@@ -108,9 +106,8 @@ class Application:
         self.tile4 = self.tileview.add_tile(3,0, lv.DIR.LEFT)
 
         self.tile1_label = lv.label(self.tile1)
-        Intro_text = (
-            "Public Transportation Information\n"
-            "Version 1.0\n"
+        Intro_text = ("Public Transportation Information\n"
+            "Version 2.0\n"
             "Grupp 5\n"
             "Members: Mette, Emily, \nSedra, Elsa & Ayat"
             "\nAll data is provided\nby TrafikLab"
@@ -121,9 +118,7 @@ class Application:
         self.apply_tile_colors(self.tile1, self.tile1_label, False)
         
         
-    #-----------------------------------------------
-    #Creating departure screen - FR2
-    #-----------------------------------------------
+        """US1.2B: Creating a departure screen """
         self.departure_title = lv.label(self.tile2)
         self.departure_title.set_text("DEPARTURES")
         self.departure_title.set_style_text_font(lv.font_montserrat_28, 0)
@@ -139,47 +134,44 @@ class Application:
         self.refresh_button_label.center()
         self.refresh_button.add_event_cb(self.on_manual_refresh, lv.EVENT.CLICKED, None)
 
-
         self.departure_stop_label = lv.label(self.tile2)
         self.departure_stop_label.set_width(560)
         self.departure_stop_label.set_text(self.selected_stop)
         self.departure_stop_label.align(lv.ALIGN.TOP_LEFT, 20, 62)
 
         self.departure_headers = []
-        for name, x in (("TIME", 28), ("LINE", 115),
-                        ("DESTINATION", 200), ("STATUS", 434)):
+        for name, x in (("TIME", 28), ("LINE", 115), ("DESTINATION", 200), ("STATUS", 434)):
             header = lv.label(self.tile2)
             header.set_text(name)
             header.align(lv.ALIGN.TOP_LEFT, x, 101)
             self.departure_headers.append(header)
 
         # Fixed positions mean the columns line up with any font.
-        self.departure_rows = []
-        for index in range(6):
-            panel = lv.obj(self.tile2)
+        self.departure_rows = [] # Stores the departure rows as a list of dictionaries, where each dictionary contains the panel and labels for a single departure row 
+        for index in range(6): # Creates six departure rows, each with a panel and labels for time, line, destination and status
+            panel = lv.obj(self.tile2) # Creates a panel for each depature row
             panel.set_size(568, 42)
-            panel.align(lv.ALIGN.TOP_LEFT, 16, 127 + index * 46)
-            panel.set_style_bg_opa(lv.OPA.COVER, 0)
-            panel.set_style_radius(8, 0)
-            panel.set_style_border_width(0, 0)
-            panel.remove_flag(lv.obj.FLAG.SCROLLABLE)
-            panel.remove_flag(lv.obj.FLAG.CLICKABLE)
+            panel.align(lv.ALIGN.TOP_LEFT, 16, 127 + index * 46) # Positions each panel below the previous one, with a vertical spacing of 46 pixels 
+            panel.set_style_bg_opa(lv.OPA.COVER, 0) # Sets the background opacity of the panel to fully opaque 
+            panel.set_style_radius(8, 0) # Sets the corner radius of the panel to 8 pixels, giving it rounded corners 
+            panel.set_style_border_width(0, 0) 
+            panel.remove_flag(lv.obj.FLAG.SCROLLABLE) 
+            panel.remove_flag(lv.obj.FLAG.CLICKABLE) # Removes the scrollable and clickable flags from the panel 
 
-            row = {"panel": panel, "status_text": ""}
-            for column, x in (("time", 10), ("line", 98),
-                              ("destination", 182), ("status", 417)):
+            row = {"panel": panel, "status_text": ""} 
+            for column, x in (("time", 10), ("line", 98),("destination", 182), ("status", 417)): # Defines the x-coordinates for each column in the departure row
                 label = lv.label(panel)
                 label.set_text("")
                 label.align(lv.ALIGN.TOP_LEFT, x, 11)
                 row[column] = label
             self.departure_rows.append(row)
 
-        self.departure_info_label = lv.label(self.tile2)
+        self.departure_info_label = lv.label(self.tile2) 
         self.departure_info_label.set_width(560)
         self.departure_info_label.set_text("Waiting for Trafiklab...")
         self.departure_info_label.align(lv.ALIGN.TOP_LEFT, 20, 413)
 
-        self.style_departure_screen()
+        self.style_departure_screen() # Applies the selected color theme to the departure screen 
         self.tile2.add_flag(lv.obj.FLAG.CLICKABLE)
         self.tile2.add_event_cb(self.on_tile2_clicked, lv.EVENT.CLICKED, None)
 
@@ -319,6 +311,27 @@ class Application:
         self.journey_info_label.set_text("Select your starting point and destination")
         self.journey_info_label.align(lv.ALIGN.TOP_MID, 0, 300)
 
+        """US5.2: Journey selection screen with starting stop and final destination stop"""
+        self.journey_selection_label = lv.label(self.tile4) # Creates a label to diplay the selected starting stop and final destination stop 
+        self.journey_selection_label.set_width(500)
+        self.journey_selection_label.align(lv.ALIGN.TOP_MID, 0, 345)
+
+        self.journey_from_dropdown.add_event_cb(self.on_journey_changed, lv.EVENT.VALUE_CHANGED, None) # Calls on journey_changed() when the user selectes a different starting point
+        self.journey_to_dropdown.add_event_cb(self.on_journey_changed, lv.EVENT.VALUE_CHANGED, None) # Calls on_journey_stop_changed() when the user selectes a different final destination
+
+        self.on_journey_changed(None) # Updates the journey selection label with the initial starting point and final destination stop 
+
+    def on_journey_changed(self, _event): # Updates the journey selection label when the user selects a different starting point 
+        stops = ("Karlskrona Centralstation", "Campus Gräsvik") # Defines the available stops for the journey selection
+
+        self.journey_from_stop =stops[self.journey_from_dropdown.get_selected()] # Defines the selected starting stop based on the user´s selection
+        self.journey_to_stop =stops[self.journey_to_dropdown.get_selected()] # Defines the selected final destination stop bassed on the user´s selection
+
+        if self.journey_from_stop == self.journey_to_stop: # Checks if the selected starting stop and final destination stop are the same
+            self.journey_selection_label.set_text("Choose different starting stop and final destination stop")
+        else: 
+            self.journey_selection_label.set_text("From: %s\nto: %s" % (self.journey_from_stop, self.journey_to_stop))
+
 
     # US4.2 - Manual refresh via the existing Trafiklab pipeline.
     def on_manual_refresh(self, _event):
@@ -356,12 +369,11 @@ class Application:
         self.live_data_status_label.set_text(data_text)
 
 
-    #---------------------------------------------------------------------
-    #FR2 -Departure screen displaying live public transport departure data 
-    #---------------------------------------------------------------------
+    
+    """US1.2B: Departure screen displaying live public transport departure data""" 
     #API and departure handling functions
     @staticmethod
-    def fetch_json(url):
+    def fetch_json(url): # Fetches JSON data from the specified URL and returns it as a Python dictionary 
         response = None
         try:
             response = urequests.get(url)
@@ -372,23 +384,20 @@ class Application:
             if response is not None:
                 response.close()
 
-    def get_stop_id(self):
-        # Returns the ID of the selected stop
+    def get_stop_id(self): # Returns the stop ID for the currently selected stop based on the STOP_IDS dictionary
         return STOP_IDS[self.selected_stop]
 
 
-    def get_departures(self):
+    def get_departures(self): # Fetches departure data for the currently selected stop and transportation type from the Trafiklab API and returns it as a list of departures 
         if not network.WLAN(network.STA_IF).isconnected():
             raise RuntimeError("Wi-Fi is disconnected")
         stop_id = self.get_stop_id()
         url = API_BASE + "/departures/" + stop_id + "?key=" + TRAFIKLAB_API_KEY
         return self.fetch_json(url).get("departures", [])
 
-    #----------------------------------------------------------------
-    #FR2 - Departure formating and display functions 
-    #----------------------------------------------------------------
+    #Departure formating and display functions 
     @staticmethod
-    def format_status(dep):
+    def format_status(dep): # Formats the status of a departure based on its properties and returns a string represenation of the status 
         if dep.get("canceled", False):
             return "Cancelled"
         if not dep.get("is_realtime", False):
@@ -401,12 +410,10 @@ class Application:
         return "On time"
 
     
-    def update_departure_screen(self):
+    def update_departure_screen(self): # Updates the departure screen with the latest departure data for the selected stop and transportation type 
         self.departure_info_label.set_text("Loading departures...")
 
-        self.departure_stop_label.set_text(
-            self.selected_stop + " | " + self.transport_type
-        )
+        self.departure_stop_label.set_text(self.selected_stop + " | " + self.transport_type)
 
         #Clear old departure information
         for row in self.departure_rows:
@@ -428,20 +435,16 @@ class Application:
                 if shown >= len(self.departure_rows):
                     break
 
-                timestamp = dep.get("realtime") or dep.get("scheduled") or ""
-                hhmm = timestamp[11:16] if len(timestamp) >= 16 else "--:--"
+                timestamp = dep.get("realtime") or dep.get("scheduled") or "" # Fetches the timestamp for the departure
+                hhmm = timestamp[11:16] if len(timestamp) >= 16 else "--:--" # Extracts the hour and minute from the timestamp, or uses "--:--" if the timestamp is invalid 
 
-                line = str(
-                    route.get("designation") or route.get("name") or "-"
-                )
+                line = str(route.get("designation") or route.get("name") or "-") # Fetches the line designation or name for the departure, or uses "-" if neither is available 
 
-                destination = route.get("direction")
+                destination = route.get("direction") # Fetches the direction of the route for the departure, or uses "-" if it is not available 
                 if not destination:
-                    destination = (
-                        (route.get("destination") or {}).get("name") or "-"
-                    )
+                    destination = ((route.get("destination") or {}).get("name") or "-")
 
-                status = self.format_status(dep)
+                status = self.format_status(dep) # Formats the status of the departure 
 
                 #Display data in the correct row
                 row = self.departure_rows[shown]
@@ -453,7 +456,7 @@ class Application:
 
                 shown += 1
 
-            if shown == 0:
+            if shown == 0: 
                 self.departure_info_label.set_text(
                     "No departures for selected stop/type."
                 )
@@ -462,7 +465,7 @@ class Application:
                     "Live data: Trafiklab.se"
                 )
 
-        except Exception as error:
+        except Exception as error: # Logs any errors that occur during the departure loading process and updates the departure infor label with an error message 
             log("Departure loading error: %r" % (error,))
             self.departure_info_label.set_text(
                 "Trafiklab ERROR: %s" % str(error)[:50]
