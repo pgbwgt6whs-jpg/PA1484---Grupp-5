@@ -267,7 +267,7 @@ class Application:
         #FR10 Reset settings button
         self.reset_button = lv.button(self.tile3)
         self.reset_button.set_size(200, 45)
-        self.reset_button.align(lv.ALIGN.TOP_MID, 100, 300)
+        self.reset_button.align(lv.ALIGN.TOP_MID, 150, 300)
         # Creates the text inside the reset button
         self.reset_button_label = lv.label(self.reset_button)
         self.reset_button_label.set_text("Reset to default")
