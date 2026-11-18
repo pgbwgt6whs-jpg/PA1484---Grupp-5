@@ -281,7 +281,7 @@ class Application:
         )
         self.update_connection_status()
 
-        """US5.1 -Journey selection screen"""
+        """US5.1 - Journey selection screen"""
         self.journey_title = lv.label(self.tile4)
         self.journey_title.set_text("Journey selection")
         self.journey_title.set_style_text_font(lv.font_montserrat_28, 0) #Creates title with specific font for the journey selection screen
