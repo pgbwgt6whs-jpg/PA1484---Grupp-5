@@ -253,7 +253,7 @@ class Application:
         # FR9: Save settings button
         self.save_button = lv.button(self.tile3)
         self.save_button.set_size(200, 45)
-        self.save_button.align(lv.ALIGN.TOP_MID, 0, 300)
+        self.save_button.align(lv.ALIGN.TOP_MID, -50, 300)
         # Create text inside the save button
         self.save_button_label = lv.label(self.save_button)
         self.save_button_label.set_text("Save as default")
