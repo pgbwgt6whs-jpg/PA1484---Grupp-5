@@ -191,7 +191,7 @@ class Application:
 
         self.live_data_status_label = lv.label(self.tile3)
         self.live_data_status_label.set_width(500)
-        self.live_data_status_label.align(lv.ALIGN.TOP_LEFT, 50, 105)
+        self.live_data_status_label.align(lv.ALIGN.TOP_LEFT, 50, 125)
 
         # Creates a label for the traffic data display settings (settings related to how traffic data is displayed can be placed below).
         self.traffic_settings_label = lv.label(self.tile3)
