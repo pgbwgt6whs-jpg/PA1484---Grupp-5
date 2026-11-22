@@ -248,7 +248,7 @@ class Application:
 
         self.transport_dropdown.set_width(200) # Sets the width of the dropdown menu.
         self.transport_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 140) # Positions the dropdown next to the "Transport type" label.
-        #self.transport_dropdown.add_event_cb(self.on_transport_changed,lv.EVENT.VALUE_CHANGED, None) # Calls on_transport_changed() whenever the user selects a different transportation type.
+        self.transport_dropdown.add_event_cb(self.on_transport_changed,lv.EVENT.VALUE_CHANGED, None) # Calls on_transport_changed() whenever the user selects a different transportation type.
 
         # FR9: Save settings button
         self.save_button = lv.button(self.tile3)
@@ -482,16 +482,35 @@ class Application:
         self.update_departure_screen()
         self.last_departure_update = time.ticks_ms() 
 
-    
-    def on_stop_changed(self, event):
-        self.selected_stop = event.get_target().get_selected_str()
-        log("Selected stop: " + self.selected_stop)
-        self.update_departure_screen()
+    def show_selection_pending(self):
+        self.departure_stop_label.set_text(self.selected_stop + "|" + self.transport_type)
 
+        for row in self.departure_rows: # Clears old departures to avoid displaying incorrect data 
+            for column in ("time", "line","destination", "status"):
+                row[column].set_text("")
+            row["status_text"]= ""
+
+        self.departure_info_label.set_text("Press refresh to load departures")
+
+    """ US3.2 Handel stop selection"""
+    def on_stop_changed(self, event):
+        selected = self.stop_dropdown.get_selected_str() # Reads the selected stop from the menu and stores it in self.selected_stop 
+        if selected == self.selected_stop: 
+            return # If there is no change in the selected stop, the function returns without any updates
+
+        self.selected_stop = selected 
+        log("Selected stop: " + selected)
+        self.show_selection_pending() # Displays a message indicating that the user has changed the stop and that the departure screen will be updated
+
+    """US1.3 Handle transport type selection"""
     def on_transport_changed(self, event):
-        self.transport_type = event.get_target().get_selected_str()
-        log("Selected transport type: " + self.transport_type)
-        self.update_departure_screen()
+        selected = self.transport_dropdown.get_selected_str() # Reads the selected transportation type from the menu and stores it in self.transport_type
+        if selected == self.transport_type: 
+            return # If there is no change in the selected transportation type, the funcation returns without any updates
+
+        self.transport_type = selected 
+        log("Selected transport type: " + selected)
+        self.show_selection_pending() # Displays a message indication that the user has changed the transportation type and that the departure screen will be updated 
 
     
 
@@ -561,8 +580,8 @@ class Application:
             self.transport_type = saved_transport #Restores the saved transportation type
             self.selected_stop = saved_stop #Restores the saved stop
             self.transport_dropdown.set_selected(valid_transports.index(self.transport_type)) #Updates the transportation type dropdown
-            self.stop_dropdown.set_selected(valid_stops.index(self.selected_stop))   #Updates the stop dropdown
-            self.update_departure_screen() #Updates departures using the restored settings
+            self.stop_dropdown.set_selected(valid_stops.index(self.selected_stop))
+            self.show_selection_pending()
             #Display confirmation message
             log("Settings reset to stored defaults")
             self.save_status_label.set_text("Settings reset!")
