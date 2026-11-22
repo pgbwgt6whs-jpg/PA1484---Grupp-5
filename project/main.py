@@ -494,26 +494,37 @@ class Application:
 
     """ US3.2 Handel stop selection"""
     def on_stop_changed(self, event):
-        selected = self.stop_dropdown.get_selected_str() # Reads the selected stop from the menu and stores it in self.selected_stop 
+
+        stops = ["Karlskrona Centralstation", "Campus Gräsvik"]
+        index = self.stop_dropdown.get_selected() # Gets selected index
+        if index >= len(stops): # Checks if index is valid
+            return
+
+        selected = stops[index] # Get selected stop
         if selected == self.selected_stop: 
             return # If there is no change in the selected stop, the function returns without any updates
+        
 
-        self.selected_stop = selected 
+        self.selected_stop = selected # Save the selected stop
         log("Selected stop: " + selected)
-        self.show_selection_pending() # Displays a message indicating that the user has changed the stop and that the departure screen will be updated
+        self.show_selection_pending() # Update display without contacting Trafiklab 
 
     """US1.3 Handle transport type selection"""
     def on_transport_changed(self, event):
-        selected = self.transport_dropdown.get_selected_str() # Reads the selected transportation type from the menu and stores it in self.transport_type
+        transports = ["Bus","Train", "Ferry", "All"]
+        index = self.transport_dropdown.get_selected() # Gets selected index
+        if index >= len(transports): # Checks that index is valid
+            return 
+
+        selected = transports[index] # Gets transport type
+
         if selected == self.transport_type: 
             return # If there is no change in the selected transportation type, the funcation returns without any updates
 
-        self.transport_type = selected 
+        self.transport_type = selected # Saves transport type
         log("Selected transport type: " + selected)
-        self.show_selection_pending() # Displays a message indication that the user has changed the transportation type and that the departure screen will be updated 
-
+        self.show_selection_pending() # Update display without contacting Trafiklab 
     
-
     # FR9 - Save settings as default
 
     def save_settings(self, event):
