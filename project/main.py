@@ -3,7 +3,7 @@ import time
 import json
 import lvgl as lv
 import network
-import urequests 
+import urequests
 
 from board_lvgl import start_board
 from debug_log import log
@@ -17,7 +17,7 @@ API_BASE = "https://realtime-api.trafiklab.se/v1"
 
 STATUS_CHECK_INTERVAL_MS = 2000
 
-STOP_IDS = {"Karlskrona Centralstation": "740000230","Campus Gräsvik": "740032188"}
+STOP_IDS = {"Karlskrona Centralstation": "740000230", "Campus Gräsvik": "740032188", "Bergåsa station": "740001537", "Karlskrona Kungsplan": "740020510", "Karlskrona centrum": "740023372", "Karlskrona Marinmuseum": "740017997", "Verkö": "740031840"}
 JOURNEY_STOPS = tuple(STOP_IDS)
 TRANSPORT_MODES = {"Bus": "BUS", "Train": "TRAIN", "Ferry": "BOAT", "All": None}
 
@@ -208,10 +208,10 @@ class Application:
 
         # Creates a dropdown menu for selecting a stop.
         self.stop_dropdown = lv.dropdown(self.tile3)    
-        self.stop_dropdown.set_options("Karlskrona Centralstation\n" "Campus Gräsvik")  # Adds the available stops to the dropdown menu.   
+        self.stop_dropdown.set_options("\n".join(JOURNEY_STOPS)) 
 
         # Selects the previously saved stop instead of always selecting Karlskrona Centralstation
-        stops = ["Karlskrona Centralstation", "Campus Gräsvik"] 
+        stops = JOURNEY_STOPS
         if self.selected_stop in stops:
             self.stop_dropdown.set_selected(stops.index(self.selected_stop))
         else:
@@ -292,7 +292,7 @@ class Application:
         self.journey_from_label.align(lv.ALIGN.TOP_LEFT, 50, 130)
         #Creates a dropdown for choosing the starting point
         self.journey_from_dropdown = lv.dropdown(self.tile4)
-        self.journey_from_dropdown.set_options("Karlskrona Centralstation\n" "Campus Gräsvik")
+        self.journey_from_dropdown.set_options("\n".join(JOURNEY_STOPS))
         self.journey_from_dropdown.set_selected(0)
         self.journey_from_dropdown.set_width(250)
         self.journey_from_dropdown.align(lv.ALIGN.TOP_LEFT, 230, 120)
@@ -302,7 +302,7 @@ class Application:
         self.journey_to_label.align(lv.ALIGN.TOP_LEFT, 50, 200)
         # Creates a dropdown for choosing the destination.
         self.journey_to_dropdown = lv.dropdown(self.tile4)
-        self.journey_to_dropdown.set_options("Karlskrona Centralstation\n""Campus Gräsvik")
+        self.journey_to_dropdown.set_options("\n".join(JOURNEY_STOPS))
         self.journey_to_dropdown.set_selected(1)
         self.journey_to_dropdown.set_width(250)
         self.journey_to_dropdown.align(lv.ALIGN.TOP_LEFT, 230, 190)
@@ -322,7 +322,7 @@ class Application:
         self.on_journey_changed(None) # Updates the journey selection label with the initial starting point and final destination stop 
 
     def on_journey_changed(self, _event): # Updates the journey selection label when the user selects a different starting point 
-        stops = ("Karlskrona Centralstation", "Campus Gräsvik") # Defines the available stops for the journey selection
+        stops = JOURNEY_STOPS
 
         self.journey_from_stop =stops[self.journey_from_dropdown.get_selected()] # Defines the selected starting stop based on the user´s selection
         self.journey_to_stop =stops[self.journey_to_dropdown.get_selected()] # Defines the selected final destination stop bassed on the user´s selection
@@ -495,7 +495,7 @@ class Application:
     """ US3.2 Handel stop selection"""
     def on_stop_changed(self, event):
 
-        stops = ["Karlskrona Centralstation", "Campus Gräsvik"]
+        stops = JOURNEY_STOPS
         index = self.stop_dropdown.get_selected() # Gets selected index
         if index >= len(stops): # Checks if index is valid
             return
@@ -556,10 +556,7 @@ class Application:
                 settings = json.load(file)
 
             valid_transports = ["Bus", "Train", "Ferry", "All"]
-            valid_stops = [
-                "Karlskrona Centralstation",
-                "Campus Gräsvik"
-            ]
+            valid_stops = JOURNEY_STOPS
 
             saved_transport = settings.get("transport_type")
             saved_stop = settings.get("selected_stop")
@@ -583,7 +580,7 @@ class Application:
             with open("settings.json", "r") as file:  # Opens json file containing saved default settings
                 settings = json.load(file)
             valid_transports = ["Bus", "Train", "Ferry", "All"]
-            valid_stops = ["Karlskrona Centralstation", "Campus Gräsvik"]
+            valid_stops = JOURNEY_STOPS
             saved_transport = settings.get("transport_type") #Reads previously saved default settings
             saved_stop = settings.get("selected_stop")
             if (saved_transport not in valid_transports or saved_stop not in valid_stops): #Checks if both saved values are valid
