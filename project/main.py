@@ -40,23 +40,15 @@ class Application:
         self.update_connection_status() 
         self.update_departure_screen()
         self.last_departure_update = time.ticks_ms()
-        self.auto_update_timer = lv.timer_create(
-        self.auto_update_departures,
-            60000,
-            None
-        )
+        self.auto_update_timer = lv.timer_create(self.auto_update_departures, 60000, None)
         log("student application ready")
 
 
     @staticmethod
     def apply_tile_colors(tile, label, dark):
         tile.set_style_bg_opa(lv.OPA.COVER, 0)
-        tile.set_style_bg_color(
-            lv.color_hex(0x000000 if dark else 0xFFFFFF), 0
-        )
-        label.set_style_text_color(
-            lv.color_hex(0xFFFFFF if dark else 0x000000), 0
-        )
+        tile.set_style_bg_color(lv.color_hex(0x000000 if dark else 0xFFFFFF), 0)
+        label.set_style_text_color(lv.color_hex(0xFFFFFF if dark else 0x000000), 0)
 
     def on_tile2_clicked(self, _event):
         self.tile2_dark = not self.tile2_dark
@@ -110,8 +102,8 @@ class Application:
             "Version 2.0\n"
             "Grupp 5\n"
             "Members: Mette, Emily, \nSedra, Elsa & Ayat"
-            "\nAll data is provided\nby TrafikLab"
-        )
+            "\nAll data is provided\nby TrafikLab")
+        
         self.tile1_label.set_text(Intro_text)
         self.tile1_label.set_style_text_font(lv.font_montserrat_28, 0)
         self.tile1_label.center()
@@ -175,9 +167,8 @@ class Application:
         self.tile2.add_flag(lv.obj.FLAG.CLICKABLE)
         self.tile2.add_event_cb(self.on_tile2_clicked, lv.EVENT.CLICKED, None)
 
-        # -----------------------------------------------
-        # Settings Screen - FR6
-        # -----------------------------------------------
+
+        """US3.1: Create a Settings Screen"""
         # Creates the title for the settings screen. 
         self.settings_title = lv.label(self.tile3)
         self.settings_title.set_text("Settings")
@@ -197,6 +188,7 @@ class Application:
         self.traffic_settings_label = lv.label(self.tile3)
         self.traffic_settings_label.set_text("Traffic data display")
         self.traffic_settings_label.align(lv.ALIGN.TOP_LEFT, 50, 100) # Positions the section label below the Settings title.
+
 
         # -----------------------------------------------
         # Stop selection - FR7
@@ -227,9 +219,7 @@ class Application:
             )  # Calls on_stop_changed() when the user selects a different stop.
 
 
-        # -----------------------------------------------
-        # Transportation type selection - FR8
-        # -----------------------------------------------
+        """US3.3: Enable Transportation Type Selection"""
         # Creates a label describing the transportation type dropdown.
         self.transport_label = lv.label(self.tile3)
         self.transport_label.set_text("Transport type")
@@ -238,7 +228,6 @@ class Application:
         # Dropdown menu implementation
         self.transport_dropdown = lv.dropdown(self.tile3) # Creates a dropdown menu on the settings screen.
         self.transport_dropdown.set_options("Bus\nTrain\nFerry\nAll") # Adds the four transportation types required by FR8.
-        # FR9
         transport_options = ["Bus", "Train", "Ferry", "All"]
 
         if self.transport_type in transport_options:
@@ -249,6 +238,7 @@ class Application:
         self.transport_dropdown.set_width(200) # Sets the width of the dropdown menu.
         self.transport_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 140) # Positions the dropdown next to the "Transport type" label.
         self.transport_dropdown.add_event_cb(self.on_transport_changed,lv.EVENT.VALUE_CHANGED, None) # Calls on_transport_changed() whenever the user selects a different transportation type.
+
 
         # FR9: Save settings button
         self.save_button = lv.button(self.tile3)
@@ -276,9 +266,7 @@ class Application:
         self.reset_button.add_event_cb(self.reset_settings, lv.EVENT.CLICKED, None)
 
         # US4.3: check Wi-Fi and update elapsed-time text every 2 seconds.
-        self.status_timer = lv.timer_create(
-            self.on_status_timer, STATUS_CHECK_INTERVAL_MS, None
-        )
+        self.status_timer = lv.timer_create(self.on_status_timer, STATUS_CHECK_INTERVAL_MS, None)
         self.update_connection_status()
 
         """US5.1 - Journey selection screen"""
