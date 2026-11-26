@@ -118,7 +118,7 @@ class Application:
         self.tile2_label = self.departure_title  # Compatibility with older UI code.
 
         # US4.2: a dedicated button makes a fresh request on demand.
-        self.refresh_button = lv.button(self.tile2)
+        self.refresh_button = lv.button(self.tile3)
         self.refresh_button.set_size(118, 42)
         self.refresh_button.align(lv.ALIGN.TOP_RIGHT, -18, 10)
         self.refresh_button_label = lv.label(self.refresh_button)
@@ -177,12 +177,12 @@ class Application:
 
         # US4.3: two independently updated labels on the Settings screen.
         self.wifi_status_label = lv.label(self.tile3)
-        self.wifi_status_label.set_width(500)
+        self.wifi_status_label.set_width(160)
         self.wifi_status_label.align(lv.ALIGN.TOP_LEFT, 50, 78)
 
         self.live_data_status_label = lv.label(self.tile3)
-        self.live_data_status_label.set_width(500)
-        self.live_data_status_label.align(lv.ALIGN.TOP_LEFT, 50, 125)
+        self.live_data_status_label.set_width(350)
+        self.live_data_status_label.align(lv.ALIGN.TOP_LEFT, 230, 78)
 
         # Creates a label for the traffic data display settings (settings related to how traffic data is displayed can be placed below).
         self.traffic_settings_label = lv.label(self.tile3)
