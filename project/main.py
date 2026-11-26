@@ -332,29 +332,36 @@ class Application:
         """Refresh status labels without making an additional API request."""
         self.update_connection_status()
 
+
+    # US4.3 - Show real Wi-Fi connectivity and live data status
     def update_connection_status(self):
         """Show actual Wi-Fi state and most recent Trafiklab request state."""
+
         connected = network.WLAN(network.STA_IF).isconnected()
-        self.wifi_status_label.set_text(
-            "Wi-Fi: Connected" if connected else "Wi-Fi: Disconnected"
-        )
+
+        self.wifi_status_label.set_text("Wi-Fi: Connected" if connected else "Wi-Fi: Disconnected")
 
         if not connected:
             data_text = "Live data: Offline (no Wi-Fi)"
-        elif (self.live_data_status in ("Updated", "No departures")
-              and self.last_data_update_ms is not None):
-            # ticks_diff accounts for MicroPython tick-counter wraparound.
-            elapsed_ms = time.ticks_diff(
-                time.ticks_ms(), self.last_data_update_ms
-            )
+
+        elif (
+            self.live_data_status in (
+                "Realtime available",
+                "Scheduled only",
+                "No departures")
+            and self.last_data_update_ms is not None):
+            # Calculate time since the latest successful request
+            elapsed_ms = time.ticks_diff(time.ticks_ms(), self.last_data_update_ms)
+
             seconds_ago = max(0, elapsed_ms // 1000)
-            data_text = "Live data: %s (%ds ago)" % (
-                self.live_data_status, seconds_ago
-            )
+
+            data_text = "Live data: %s (%ds ago)" % (self.live_data_status,seconds_ago)
+
         else:
             data_text = "Live data: " + self.live_data_status
 
         self.live_data_status_label.set_text(data_text)
+
 
 
     
@@ -398,12 +405,19 @@ class Application:
         return "On time"
 
     
-    def update_departure_screen(self): # Updates the departure screen with the latest departure data for the selected stop and transportation type 
+
+    def update_departure_screen(self):
+        # Updates departure screen with the latest departure data
         self.departure_info_label.set_text("Loading departures...")
 
-        self.departure_stop_label.set_text(self.selected_stop + " | " + self.transport_type)
+        # US4.3: Update status when a new API request starts
+        self.live_data_status = "Loading..."
+        self.update_connection_status()
 
-        #Clear old departure information
+        self.departure_stop_label.set_text(
+            self.selected_stop + " | " + self.transport_type)
+
+        # Clear old departure information
         for row in self.departure_rows:
             for column in ("time", "line", "destination", "status"):
                 row[column].set_text("")
@@ -414,6 +428,9 @@ class Application:
             mode = TRANSPORT_MODES[self.transport_type]
             shown = 0
 
+            # US4.3: Track whether displayed departures contain realtime data
+            has_realtime = False
+
             for dep in departures:
                 route = dep.get("route") or {}
 
@@ -423,18 +440,22 @@ class Application:
                 if shown >= len(self.departure_rows):
                     break
 
-                timestamp = dep.get("realtime") or dep.get("scheduled") or "" # Fetches the timestamp for the departure
-                hhmm = timestamp[11:16] if len(timestamp) >= 16 else "--:--" # Extracts the hour and minute from the timestamp, or uses "--:--" if the timestamp is invalid 
+                timestamp = (dep.get("realtime") or dep.get("scheduled") or "")
 
-                line = str(route.get("designation") or route.get("name") or "-") # Fetches the line designation or name for the departure, or uses "-" if neither is available 
+                hhmm = (timestamp[11:16]
+                    if len(timestamp) >= 16
+                    else "--:--")
 
-                destination = route.get("direction") # Fetches the direction of the route for the departure, or uses "-" if it is not available 
+                line = str(route.get("designation") or route.get("name") or "-")
+
+                destination = route.get("direction")
+
                 if not destination:
                     destination = ((route.get("destination") or {}).get("name") or "-")
 
-                status = self.format_status(dep) # Formats the status of the departure 
+                status = self.format_status(dep)
 
-                #Display data in the correct row
+                # Display data in the correct row
                 row = self.departure_rows[shown]
                 row["time"].set_text(hhmm)
                 row["line"].set_text(line[:6])
@@ -442,25 +463,43 @@ class Application:
                 row["status"].set_text(status)
                 row["status_text"] = status
 
+                # US4.3: Check actual realtime flag from Trafiklab
+                if dep.get("is_realtime", False):
+                    has_realtime = True
+
                 shown += 1
 
-            if shown == 0: 
-                self.departure_info_label.set_text(
-                    "No departures for selected stop/type."
-                )
+            # US4.3: Save timestamp after successful API retrieval
+            self.last_data_update_ms = time.ticks_ms()
+
+            if shown == 0:
+                # US4.3: No matching departures were found
+                self.live_data_status = "No departures"
+
+                self.departure_info_label.set_text("No departures for selected stop/type.")
+
             else:
-                self.departure_info_label.set_text(
-                    "Live data: Trafiklab.se"
-                )
+                # US4.3: Determine status from actual API data
+                self.live_data_status = ("Realtime available"
+                    if has_realtime
+                    else "Scheduled only")
 
-        except Exception as error: # Logs any errors that occur during the departure loading process and updates the departure infor label with an error message 
+                self.departure_info_label.set_text("Live data: Trafiklab.se")
+
+        except Exception as error:
+            # US4.3: Record failed API requests
+            self.live_data_status = "Request failed"
+
             log("Departure loading error: %r" % (error,))
-            self.departure_info_label.set_text(
-                "Trafiklab ERROR: %s" % str(error)[:50]
-            )
 
-        #Update colors for light/dark theme
+            self.departure_info_label.set_text("Trafiklab ERROR: %s" % str(error)[:50])
+
+        # US4.3: Update Settings screen after API request
+        self.update_connection_status()
+
+        # Update colors for light/dark theme
         self.style_departure_screen()
+
 
 
     # -----------------------------------------------
@@ -470,15 +509,26 @@ class Application:
         self.update_departure_screen()
         self.last_departure_update = time.ticks_ms() 
 
-    def show_selection_pending(self):
-        self.departure_stop_label.set_text(self.selected_stop + "|" + self.transport_type)
 
-        for row in self.departure_rows: # Clears old departures to avoid displaying incorrect data 
-            for column in ("time", "line","destination", "status"):
+    def show_selection_pending(self):
+        self.departure_stop_label.set_text(
+            self.selected_stop + "|" + self.transport_type
+        )
+
+        # Clear old departures to avoid displaying incorrect data
+        for row in self.departure_rows:
+            for column in ("time", "line", "destination", "status"):
                 row[column].set_text("")
-            row["status_text"]= ""
+
+            row["status_text"] = ""
 
         self.departure_info_label.set_text("Press refresh to load departures")
+
+        # US4.3: Indicate that new selection has not been fetched yet
+        self.live_data_status = "Waiting for refresh"
+        self.last_data_update_ms = None
+        self.update_connection_status()
+
 
     """ US3.2 Handel stop selection"""
     def on_stop_changed(self, event):
