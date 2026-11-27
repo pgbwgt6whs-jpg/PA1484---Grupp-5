@@ -10,8 +10,10 @@ from debug_log import log
 
 
 from secrets import WIFI_SSID, WIFI_PASSWORD, TRAFIKLAB_API_KEY
+import secrets
 
 API_BASE = "https://realtime-api.trafiklab.se/v1"
+RESROBOT_TRIP_URL = "https://api.resrobot.se/v2.1/trip"
 # These are name-search paths, not stop IDs. The stop IDs come from Stop Lookup.
 # Stop IDs from Trafiklab Stop Lookup
 
@@ -239,8 +241,7 @@ class Application:
         self.transport_dropdown.align(lv.ALIGN.TOP_LEFT, 250, 140) # Positions the dropdown next to the "Transport type" label.
         self.transport_dropdown.add_event_cb(self.on_transport_changed,lv.EVENT.VALUE_CHANGED, None) # Calls on_transport_changed() whenever the user selects a different transportation type.
 
-
-        # FR9: Save settings button
+        """FR9: Save settings button"""
         self.save_button = lv.button(self.tile3)
         self.save_button.set_size(200, 45)
         self.save_button.align(lv.ALIGN.TOP_MID, -150, 300)
@@ -254,7 +255,7 @@ class Application:
         self.save_status_label.set_text("")
         self.save_status_label.align(lv.ALIGN.TOP_MID, 0, 390)
 
-        #FR10 Reset settings button
+        """FR10 Reset settings button"""
         self.reset_button = lv.button(self.tile3)
         self.reset_button.set_size(200, 45)
         self.reset_button.align(lv.ALIGN.TOP_MID, 150, 300)
@@ -273,36 +274,56 @@ class Application:
         self.journey_title = lv.label(self.tile4)
         self.journey_title.set_text("Journey selection")
         self.journey_title.set_style_text_font(lv.font_montserrat_28, 0) #Creates title with specific font for the journey selection screen
-        self.journey_title.align(lv.ALIGN.TOP_MID, 0, 30)
+        self.journey_title.align(lv.ALIGN.TOP_MID, 0, 8)  # Move the title up to make room for results.
         #Creates a label for starting point
         self.journey_from_label = lv.label(self.tile4) 
         self.journey_from_label.set_text("From")
-        self.journey_from_label.align(lv.ALIGN.TOP_LEFT, 50, 130)
+        self.journey_from_label.align(lv.ALIGN.TOP_LEFT, 16, 47)  # Place the From label above the left dropdown.
         #Creates a dropdown for choosing the starting point
         self.journey_from_dropdown = lv.dropdown(self.tile4)
         self.journey_from_dropdown.set_options("\n".join(JOURNEY_STOPS))
         self.journey_from_dropdown.set_selected(0)
-        self.journey_from_dropdown.set_width(250)
-        self.journey_from_dropdown.align(lv.ALIGN.TOP_LEFT, 230, 120)
+        self.journey_from_dropdown.set_width(278)  # Leave room for long stop names.
+        self.journey_from_dropdown.align(lv.ALIGN.TOP_LEFT, 16, 68)  # Align the From dropdown with its label.
         # Creates a label for the destination.
         self.journey_to_label = lv.label(self.tile4)
         self.journey_to_label.set_text("To")
-        self.journey_to_label.align(lv.ALIGN.TOP_LEFT, 50, 200)
+        self.journey_to_label.align(lv.ALIGN.TOP_LEFT, 306, 47)  # Place the To label above the right dropdown.
         # Creates a dropdown for choosing the destination.
         self.journey_to_dropdown = lv.dropdown(self.tile4)
         self.journey_to_dropdown.set_options("\n".join(JOURNEY_STOPS))
         self.journey_to_dropdown.set_selected(1)
-        self.journey_to_dropdown.set_width(250)
-        self.journey_to_dropdown.align(lv.ALIGN.TOP_LEFT, 230, 190)
+        self.journey_to_dropdown.set_width(278)  # Match the width of the From dropdown.
+        self.journey_to_dropdown.align(lv.ALIGN.TOP_LEFT, 306, 68)  # Place the To dropdown beside the From dropdown.
          # Displays instructions for the user.
         self.journey_info_label = lv.label(self.tile4)
-        self.journey_info_label.set_text("Select your starting point and destination")
-        self.journey_info_label.align(lv.ALIGN.TOP_MID, 0, 300)
+        self.journey_info_label.set_width(320)  # Leave space beside the message for the Search button.
+        self.journey_info_label.align(lv.ALIGN.TOP_LEFT, 16, 137)  # Show details below the search status.
 
         """US5.2: Journey selection screen with starting stop and final destination stop"""
         self.journey_selection_label = lv.label(self.tile4) # Creates a label to diplay the selected starting stop and final destination stop 
-        self.journey_selection_label.set_width(500)
-        self.journey_selection_label.align(lv.ALIGN.TOP_MID, 0, 345)
+        self.journey_selection_label.set_width(214)  # Keep search status within the left side of the row.
+        self.journey_selection_label.align(lv.ALIGN.TOP_LEFT, 16, 114)  # Place search status below the stop selectors.
+
+        """US5.3: Display matching journeys in a scrollable results panel"""
+        self.journey_search_button = lv.button(self.tile4)  # Create a dedicated button for requesting journeys.
+        self.journey_search_button.set_size(120, 38)  # Give the button room for a touch target and its label.
+        self.journey_search_button.align(lv.ALIGN.TOP_RIGHT, -16, 114)  # Keep the button at the right of the search row.
+        search_label = lv.label(self.journey_search_button)  # Attach the caption to the button.
+        search_label.set_text("Search")  # Label the action that fetches journeys.
+        search_label.center()  # Center the caption within the button.
+        self.journey_search_button.add_event_cb(self.on_journey_search, lv.EVENT.CLICKED, None)  # Run the search only when the button is tapped.
+
+        self.journey_results = lv.obj(self.tile4)  # Give journey cards a separate container.
+        self.journey_results.set_size(568, 264)  # Reserve the lower section of the screen for results.
+        self.journey_results.align(lv.ALIGN.TOP_LEFT, 16, 174)  # Place results beneath the search controls.
+        self.journey_results.set_scroll_dir(lv.DIR.VER)  # Scroll the results vertically.
+        self.journey_results.add_flag(lv.obj.FLAG.SCROLL_CHAIN_HOR)  # Allow horizontal tile swipes.
+        self.journey_results.remove_flag(lv.obj.FLAG.SCROLL_CHAIN_VER)  # Keep vertical scroll gestures inside the results panel.
+        self.journey_results.set_scrollbar_mode(lv.SCROLLBAR_MODE.AUTO)  # Show a scrollbar when the results need scrolling.
+        self.journey_results.set_style_pad_all(10, 0)  # Leave space between cards and the panel edges.
+        self.journey_results.set_style_pad_row(8, 0)  # Separate adjacent journey cards.
+        self.journey_results.set_flex_flow(lv.FLEX_FLOW.COLUMN)  # Stack cards with room for wrapped text.
 
         self.journey_from_dropdown.add_event_cb(self.on_journey_changed, lv.EVENT.VALUE_CHANGED, None) # Calls on journey_changed() when the user selectes a different starting point
         self.journey_to_dropdown.add_event_cb(self.on_journey_changed, lv.EVENT.VALUE_CHANGED, None) # Calls on_journey_stop_changed() when the user selectes a different final destination
@@ -316,9 +337,59 @@ class Application:
         self.journey_to_stop =stops[self.journey_to_dropdown.get_selected()] # Defines the selected final destination stop bassed on the user´s selection
 
         if self.journey_from_stop == self.journey_to_stop: # Checks if the selected starting stop and final destination stop are the same
-            self.journey_selection_label.set_text("Choose different starting stop and final destination stop")
+            self.journey_selection_label.set_text("Choose different stops")  # Explain why the Search button is disabled.
+            self.journey_search_button.add_state(lv.STATE.DISABLED)  # Disable searching until the stops differ.
         else: 
-            self.journey_selection_label.set_text("From: %s\nto: %s" % (self.journey_from_stop, self.journey_to_stop))
+            self.journey_selection_label.set_text("Ready to search")  # Indicate that the current stop pair can be searched.
+            self.journey_search_button.remove_state(lv.STATE.DISABLED)  # Enable searching for a valid stop pair.
+        self.journey_info_label.set_text("")  # Clear the previous message.
+        self.journey_results.clean()  # Clear results for the previous stop pair.
+        self.journey_results.scroll_to_y(0, lv.ANIM.OFF)  # Reset scrolling to the top for new results.
+
+    """US5.3: Search for journeys and render the results"""
+    def on_journey_search(self, _event):
+        if self.journey_from_stop == self.journey_to_stop:  # Guard against an invalid search event.
+            return
+
+        self.journey_results.clean()  # Remove cards from the previous search.
+        self.journey_results.scroll_to_y(0, lv.ANIM.OFF)  # Reset scrolling to the top for new results.
+        try:
+            journeys = self.get_matching_journeys(self.journey_from_stop, self.journey_to_stop)  # Fetch ranked results for the selected stops.
+        except RuntimeError as error:  # Handle connection and response failures.
+            self.journey_selection_label.set_text("Search failed")  # Distinguish a failed request from an empty result.
+            self.journey_info_label.set_text(str(error))  # Show the safe message from the journey API code.
+            return
+
+        if not journeys:  # Check whether any matching public transport journeys were found.
+            self.journey_selection_label.set_text("No journeys found")  # Report a successful search with no matches.
+            self.journey_info_label.set_text("")  # Clear the previous message.
+            return
+
+        self.journey_selection_label.set_text("%d journey options" % len(journeys))  # Show the number of journeys displayed.
+        self.journey_info_label.set_text("Data from Trafiklab.se")  # Credit the source of the journey data.
+        for journey in journeys:  # Build one card for each ranked journey.
+            departure = self.format_journey_time(journey["departure"])  # Format the time at the start of the journey.
+            arrival = self.format_journey_time(journey["arrival"])  # Format the time at the end of the journey.
+            lines = ["Departure %s    Arrival %s" % (departure, arrival)]  # Start the card with the journey times.
+            if journey["transfers"]:  # Add boarding details when a vehicle change is required.
+                for transfer in journey["transfers"]:  # List connections in travel order.
+                    boarding_time = self.format_journey_time(transfer["departure"])  # Format the departure time of the next vehicle.
+                    lines.append("Change at %s\nNext departure %s" % (transfer["stop"], boarding_time))  # Show where to board and when the next vehicle leaves.
+            else:
+                lines.append("Direct journey (no vehicle changes)")  # Identify journeys that require no vehicle changes.
+
+            card = lv.label(self.journey_results)  # Add the card to the scrollable results panel.
+            card.set_width(530)  # Keep text within the panel and leave room for the scrollbar.
+            card.set_style_bg_color(lv.color_hex(0xE8EEF5), 0)  # Use a light background to distinguish each card.
+            card.set_style_bg_opa(lv.OPA.COVER, 0)  # Make the card background visible.
+            card.set_style_text_color(lv.color_hex(0x17212B), 0)  # Use dark text for contrast on the card.
+            card.set_style_radius(8, 0)  # Round the card corners.
+            card.set_style_pad_all(10, 0)  # Keep the text away from the card edges.
+            card.set_text("\n".join(lines))  # Display the journey details on separate lines.
+
+    @staticmethod
+    def format_journey_time(timestamp):
+        return "%s/%s %s" % (timestamp[8:10], timestamp[5:7], timestamp[11:16])  # Show the date for overnight trips.
 
 
     # US4.2 - Manual refresh via the existing Trafiklab pipeline.
@@ -362,16 +433,16 @@ class Application:
 
         self.live_data_status_label.set_text(data_text)
 
-
-
-    
     """US1.2B: Departure screen displaying live public transport departure data""" 
     #API and departure handling functions
     @staticmethod
-    def fetch_json(url): # Fetches JSON data from the specified URL and returns it as a Python dictionary 
+    def fetch_json(url, timeout=None): # Fetches JSON data from the specified URL and returns it as a Python dictionary
         response = None
         try:
-            response = urequests.get(url)
+            if timeout is None:
+                response = urequests.get(url)
+            else:
+                response = urequests.get(url, timeout=timeout)  # Apply a timeout when the caller supplies one.
             if response.status_code != 200:
                 raise RuntimeError("Trafiklab HTTP %s" % response.status_code)
             return response.json()
@@ -382,13 +453,80 @@ class Application:
     def get_stop_id(self): # Returns the stop ID for the currently selected stop based on the STOP_IDS dictionary
         return STOP_IDS[self.selected_stop]
 
-
     def get_departures(self): # Fetches departure data for the currently selected stop and transportation type from the Trafiklab API and returns it as a list of departures 
         if not network.WLAN(network.STA_IF).isconnected():
             raise RuntimeError("Wi-Fi is disconnected")
         stop_id = self.get_stop_id()
         url = API_BASE + "/departures/" + stop_id + "?key=" + TRAFIKLAB_API_KEY
         return self.fetch_json(url).get("departures", [])
+
+    """US5.3: Fetch and rank the top 5 matching journeys"""
+    def get_matching_journeys(self, from_stop, to_stop):
+        origin_id = STOP_IDS[from_stop]  # Map the starting stop name to its national stop ID.
+        destination_id = STOP_IDS[to_stop]  # Map the destination name to its national stop ID.
+        if origin_id == destination_id:  # Skip the request when both choices refer to the same stop.
+            return []
+
+        api_key = getattr(secrets, "RESROBOT_API_KEY", "").strip()  # Read the ResRobot key from local configuration.
+       
+        if not api_key:  # Report a missing key before trying the API.
+            raise RuntimeError("ResRobot API key is missing")
+        if not network.WLAN(network.STA_IF).isconnected(): # Check Wi-Fi before opening an HTTPS connection.
+            raise RuntimeError("Wi-Fi is disconnected")
+
+        url = (
+            RESROBOT_TRIP_URL
+            + "?format=json&numF=5&passlist=0&showPassingPoints=0"  # Omit passing stops to reduce response size.
+            + "&originId=" + origin_id + "&destId=" + destination_id
+            + "&accessId=" + api_key)
+        
+        try:
+            data = self.fetch_json(url, timeout=10)  # Use a timeout for the journey request.
+        except ValueError:
+            message = "Invalid response from ResRobot"  # Report unreadable JSON.
+        except Exception:
+            message = "Could not fetch journeys from ResRobot"  # Keep the request URL out of the error message.
+        else:
+            return self.rank_journeys(data)  # Extract and rank journeys from the parsed response.
+        raise RuntimeError(message)  # Raise outside the handler to avoid chaining the original error.
+
+    @staticmethod
+    def rank_journeys(data):
+        if isinstance(data, dict) and data.get("errorCode") == "SVC_NO_RESULT":  # ResRobot can report no journeys with HTTP 200.
+            return []
+        if not isinstance(data, dict) or "errorCode" in data:  # Reject API errors and unexpected response types.
+            raise RuntimeError("ResRobot could not plan journeys")
+        if not isinstance(data.get("Trip"), list):  # A successful journey response contains a trip list.
+            raise RuntimeError("Invalid journey data from ResRobot")
+
+        journeys = []
+        try:
+            for trip in data["Trip"]:
+                legs = trip["LegList"]["Leg"]  # Read the ordered stages of this journey.
+                if not isinstance(legs, list) or not legs:  # A journey must have at least one leg.
+                    raise TypeError
+                vehicle_legs = [leg for leg in legs if leg["type"] == "JNY"]  # Count only public transport legs when identifying changes.
+                if not vehicle_legs:  # Skip walking-only routes.
+                    continue
+
+                origin = legs[0]["Origin"]  # Include any walk before the first vehicle in the departure time.
+                destination = legs[-1]["Destination"]  # Include any final walk in the arrival time.
+                transfers = []  # An empty list means no vehicle changes.
+                for leg in vehicle_legs[1:]:  # Each vehicle after the first is a transfer.
+                    boarding_stop = leg["Origin"]  # Use the stop where the next vehicle departs.
+                    transfers.append({"stop": boarding_stop["name"],  # Show the connecting vehicle's boarding stop.
+                        "departure": boarding_stop["date"] + "T" + boarding_stop["time"],})
+
+                # Keep dates with times so midnight crossings sort correctly.
+                journeys.append({"departure": origin["date"] + "T" + origin["time"], "arrival": destination["date"] + "T" + destination["time"], "transfers": transfers,})
+
+        except (KeyError, IndexError, TypeError):
+            raise RuntimeError("Invalid journey data from ResRobot")
+
+        # Sort by arrival, then transfer count, then departure.
+        journeys.sort(key=lambda journey: (journey["arrival"], len(journey["transfers"]), journey["departure"]))
+        return journeys[:5]  # ResRobot can return more than the requested five journeys.
+
 
     #Departure formating and display functions 
     @staticmethod
@@ -404,7 +542,6 @@ class Application:
             return "Early %dm" % ((-delay) // 60)
         return "On time"
 
-    
 
     def update_departure_screen(self):
         # Updates departure screen with the latest departure data
